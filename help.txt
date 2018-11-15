@@ -11,10 +11,15 @@ git config --global user.email "chenkuanglu@qq.com"
 
 4 
 提交已经add过的文件 git commmit -m "add file"
-提交没有add过的文件 git commmit -m "add file" -- xxx.c
+提交没有add过的指定文件 git commmit -m "add file" -- xxx.c
+提交没有add过的但曾经跟踪过的所有文件 git commmit -a -m "add file"
 
 5 放弃修改 git checkout -- xxx.c 
 
 6 取消暂存 git reset HEAD xxx.c 
+
+7 .gitignore 在 git status -s 里允许你略过不显示具有某些特征打文件
+
+
 
 

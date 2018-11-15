@@ -1,0 +1,20 @@
+git 中文文档：https://git-scm.com/book/zh/v2
+
+1 选择一个目录，执行 git init, 以当前目录作为仓库
+
+2 配置用户信息：
+git config --global user.name "chenkuanglu"
+git config --global user.email "chenkuanglu@qq.com"
+
+3 添加文件 git add xxx.c/dir
+如果已经提交的文件发生修改，也需要先add到暂存，然后再提交
+
+4 
+提交已经add过的文件 git commmit -m "add file"
+提交没有add过的文件 git commmit -m "add file" -- xxx.c
+
+5 放弃修改 git checkout -- xxx.c 
+
+6 取消暂存 git reset HEAD xxx.c 
+
+

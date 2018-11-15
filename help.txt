@@ -22,4 +22,15 @@ git config --global user.email "chenkuanglu@qq.com"
 
 8 查看上两次的log信息：git log --stat -2
 
+9 ssh 方式push/pull远程仓库
+    ssh-keygen -t rsa -C "chenkuanglu@qq.com"
+    登录github，右上角设置，选择SSH并NEW一个key，将本地生成的rsa全部复制到github
+    github上新建一个仓库，并复制ssh下载地址
+    git remote add clib git@github.com:chenkuanglu/clib.git
+    git remote -v
+    ssh -T git@github.com
+
+    git push clib master
+
+10 
 

@@ -20,6 +20,6 @@ git config --global user.email "chenkuanglu@qq.com"
 
 7 .gitignore 在 git status -s 里允许你略过不显示具有某些特征打文件
 
-
+8 查看上两次的log信息：git log --stat -2
 
 

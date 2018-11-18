@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include "thr_mux.h"
 
-thr_mux_t mux;
+mux_t mux;
 
 void* fn(void *arg)
 {

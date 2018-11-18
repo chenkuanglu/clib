@@ -13,11 +13,11 @@ extern "C" {
 typedef struct {
     pthread_mutex_t     mux;
     pthread_mutexattr_t attr;
-} thr_mux_t;
+} mux_t;
 
-int mux_init    (thr_mux_t *pmux);
-int mux_lock    (thr_mux_t *pmux);
-int mux_unlock  (thr_mux_t *pmux);
+int mux_init    (mux_t *mux);
+int mux_lock    (mux_t *mux);
+int mux_unlock  (mux_t *mux);
 
 #ifdef __cplusplus
 }

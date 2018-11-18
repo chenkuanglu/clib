@@ -1,14 +1,20 @@
-//
-// pthread mutex 
-// 
+/**
+ * @file    thr_mux.c
+ * @author  ln
+ * @brief   mutex, inner process & recursive
+ **/
+
+#include "thr_mux.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "thr_mux.h"
-
-// attributes: inner process, prio inherit and recursive
+/**
+ * @brief   init mutex, inner process & recursive
+ * @param   mutex to be init
+ * @return  0 is sucess
+ **/
 int mux_init(thr_mux_t *pmux)
 {
     pthread_mutexattr_init(&pmux->attr);
@@ -20,11 +26,21 @@ int mux_init(thr_mux_t *pmux)
     return pthread_mutex_init(&pmux->mux, &pmux->attr);
 }
 
+/**
+ * @brief   lock
+ * @param   mutex to be lock
+ * @return  0 is sucess
+ **/
 int mux_lock(thr_mux_t *pmux)
 {
     return pthread_mutex_lock(&pmux->mux);
 }
 
+/**
+ * @brief   unlock
+ * @param   mutex to be unlock
+ * @return  0 is sucess
+ **/
 int mux_unlock(thr_mux_t *pmux)
 {
     return pthread_mutex_unlock(&pmux->mux);

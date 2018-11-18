@@ -1,5 +1,5 @@
 /**
- * @file    thr_mux.h
+ * @file    mux.h
  * @author  ln
  * @brief   mutex, inner process & recursive
  **/

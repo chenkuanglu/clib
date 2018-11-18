@@ -1,10 +1,10 @@
 /**
- * @file    thr_mux.c
+ * @file    mux.c
  * @author  ln
  * @brief   mutex, inner process & recursive
  **/
 
-#include "thr_mux.h"
+#include "mux.h"
 
 #ifdef __cplusplus
 extern "C" {

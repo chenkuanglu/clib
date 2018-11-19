@@ -4,11 +4,11 @@
  * @brief   mutex, inner process & recursive
  **/
 
-#include "mux.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "mux.h"
 
 /**
  * @brief   init mutex, inner process & recursive

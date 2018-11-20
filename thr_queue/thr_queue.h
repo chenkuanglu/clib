@@ -32,6 +32,7 @@ extern "C" {
  **/
 typedef struct __thrq_elm {
     TAILQ_ENTRY(__thrq_elm) entry;
+    uint8_t                 data[];     /* flexible array */
 } thrq_elm_t;
 
 /**
@@ -50,59 +51,70 @@ typedef struct {
     mux_t               lock;
     pthread_mutex_t     cond_lock;
     pthread_cond_t      cond;
+    int                 count;
 } thrq_cb_t;
 
-/* is empty */  not safe
-#define thrq_empty(thrq)        TAILQ_EMPTY(&thrq->head)
+/* lock/unlock thread queue */
+#define THRQ_LOCK(thrq)         mux_lock(&thrq->lock)
+#define THRQ_UNLOck(thrq)       mux_unlock(&thrq->lock)
 
-/* first/begin element */  not safe
-#define thrq_first(thrq)        TAILQ_FIRST(&thrq->head)
-#define thrq_begin(thrq)        thrq_first(thrq)
+/* is empty, not thread safe */  
+#define THRQ_EMPTY(thrq)        TAILQ_EMPTY(&thrq->head)
 
-/* last/end element */
-#define thrq_last(thrq)         TAILQ_LAST(&thrq->head, __thrq_head)
-#define thrq_end(thrq)          thrq_last(thrq)
+/* first/begin element, not thread safe */
+#define THRQ_FIRST(thrq)        TAILQ_FIRST(&thrq->head)
+#define THRQ_BEGIN(thrq)        THRQ_FIRST(thrq)
+/* last/end element, not thread safe */
+#define THRQ_LAST(thrq)         TAILQ_LAST(&thrq->head, __thrq_head)
+#define THRQ_END(Thrq)          THRQ_LAST(thrq)
 
-/* element's next one */  not safe
-#define thrq_next(elm)          TAILQ_NEXT(elm, entry)
+/* element's next one, not thread safe */
+#define THRQ_NEXT(elm)          TAILQ_NEXT(elm, entry)
+/* element's previous one, not thread safe */
+#define THRQ_PREV(elm)          TAILQ_PREV(elm, __thrq_head, entry)
 
-/* element's previous one */  not safe
-#define thrq_prev(elm)          TAILQ_PREV(elm, __thrq_head, entry)
-
-/* insert before first element(head) */
-#define thrq_push(thrq, elm)    thrq_insert_head(thrq, elm)
-
-/* remove first element */
-#define thrq_pop(thrq, elm)     thrq_remove(head, thrq_first(head))
-
-/* insert at the end */
-#define thrq_append(head, elm)  thrq_insert_tail(head, elm)
-
-/* for each element */
+/* for each element, not thread safe */
 #define THRQ_FOREACH(var, thrq) \
     TAILQ_FOREACH(var, &thrq->head, entry)
-
-/* for each element reversely */
+/* for each element reversely, not thread safe */
 #define THRQ_FOREACH_REVERSE(var, thrq) \
     TAILQ_FOREACH_REVERSE(var, &thrq->head, __thrq_head, entry)
 
-typedef int (*thrq_cmp_t)(thrq_elm_t*, thrq_elm_t*);
 
-extern int thrq_head_init       (thrq_head_t *thrq);
+typedef int (*thrq_cmp_t)(void*, void*);
 
-extern int thrq_insert_head     (thrq_cb_t *thrq, thrq_elm_t *elm);
-extern int thrq_insert_tail     (thrq_cb_t *thrq, thrq_elm_t *elm);
+extern int thrq_init            (thrq_cb_t *thrq);
 
-extern int thrq_insert_after    (thrq_cb_t *thrq, thrq_elm_t *list_elm, thrq_elm_t *elm);
-extern int thrq_insert_before   (thrq_cb_t *thrq, thrq_elm_t *list_elm, thrq_elm_t *elm);
+extern int thrq_empty           (thrq_cb_t *thrq);
+
+extern int thrq_count           (thrq_cb_t *thrq);
+
+extern int thrq_first           (thrq_cb_t *thrq);
+extern int thrq_last            (thrq_cb_t *thrq);
+
+extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq);
+extern int thrq_free            (thrq_cb_t *thrq);
+
+extern int thrq_insert_head     (thrq_cb_t *thrq, void *data, int len);
+extern int thrq_insert_tail     (thrq_cb_t *thrq, void *data, int len);
+
+extern int thrq_insert_after    (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
+extern int thrq_insert_before   (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
 
 extern int thrq_remove          (thrq_cb_t *thrq, thrq_elm_t *elm);
 extern int thrq_concat          (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
 
-extern int thrq_send            (thrq_cb_t *thrq, thrq_elm_t *elm, int size);
-extern int thrq_receive         (thrq_cb_t *thrq, void *buf, int size, double time);
+extern int thrq_send            (thrq_cb_t *thrq, void *data, int len);
+extern int thrq_receive         (thrq_cb_t *thrq, void *buf, int max_size, double timeout);
 
-extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, thrq_elm_t *elm, thrq_cmp_t elm_cmp);
+/* thread safe */
+#define thrq_begin(thrq, data, len)     thrq_first(thrq)
+#define thrq_end(thrq, data, len)       thrq_last(thrq)
+#define thrq_push(thrq, data, len)      thrq_insert_head(thrq, data, len)
+#define thrq_pop(thrq)                  thrq_remove(thrq, thrq_first(thrq))
+#define thrq_append(thrq, data, len)    thrq_insert_tail(thrq, data, len)
+
+extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, thrq_cmp_t elm_cmp);
 
 #ifdef __cplusplus
 }

@@ -9,7 +9,6 @@ extern "C" {
 #endif
 
 #include <sys/queue.h>
-#include <math.h>
 #include "../mux/mux.h"
 
 /**
@@ -32,7 +31,8 @@ extern "C" {
  **/
 typedef struct __thrq_elm {
     TAILQ_ENTRY(__thrq_elm) entry;
-    uint8_t                 data[];     /* flexible array */
+    int                     len;
+    unsigned char           data[];     /* flexible array */
 } thrq_elm_t;
 
 /**
@@ -49,9 +49,13 @@ typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 typedef struct {
     thrq_head_t         head;
     mux_t               lock;
+
     pthread_mutex_t     cond_lock;
     pthread_cond_t      cond;
+    int                 cond_ok;
+
     int                 count;
+    int                 max_size;
 } thrq_cb_t;
 
 /* lock/unlock thread queue */
@@ -80,20 +84,21 @@ typedef struct {
 #define THRQ_FOREACH_REVERSE(var, thrq) \
     TAILQ_FOREACH_REVERSE(var, &thrq->head, __thrq_head, entry)
 
+#define THRQ_MAX_SIZE_DEF       1000
 
-typedef int (*thrq_cmp_t)(void*, void*);
+typedef int (*thrq_cmp_t)(void*, void*, int len);
 
-extern int thrq_init            (thrq_cb_t *thrq);
+extern int thrq_init            (thrq_cb_t *thrq, int max_size);
 
 extern int thrq_empty           (thrq_cb_t *thrq);
 
 extern int thrq_count           (thrq_cb_t *thrq);
 
-extern int thrq_first           (thrq_cb_t *thrq);
-extern int thrq_last            (thrq_cb_t *thrq);
+extern thrq_elm_t* thrq_first   (thrq_cb_t *thrq);
+extern thrq_elm_t* thrq_last    (thrq_cb_t *thrq);
 
-extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq);
-extern int thrq_free            (thrq_cb_t *thrq);
+extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq, int max_size);
+extern void thrq_free           (thrq_cb_t *thrq);
 
 extern int thrq_insert_head     (thrq_cb_t *thrq, void *data, int len);
 extern int thrq_insert_tail     (thrq_cb_t *thrq, void *data, int len);
@@ -107,14 +112,14 @@ extern int thrq_concat          (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
 extern int thrq_send            (thrq_cb_t *thrq, void *data, int len);
 extern int thrq_receive         (thrq_cb_t *thrq, void *buf, int max_size, double timeout);
 
+extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp);
+
 /* thread safe */
 #define thrq_begin(thrq, data, len)     thrq_first(thrq)
 #define thrq_end(thrq, data, len)       thrq_last(thrq)
 #define thrq_push(thrq, data, len)      thrq_insert_head(thrq, data, len)
 #define thrq_pop(thrq)                  thrq_remove(thrq, thrq_first(thrq))
 #define thrq_append(thrq, data, len)    thrq_insert_tail(thrq, data, len)
-
-extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, thrq_cmp_t elm_cmp);
 
 #ifdef __cplusplus
 }

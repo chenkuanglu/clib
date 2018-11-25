@@ -257,6 +257,7 @@ int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
         if (thrq->count > 0) {
             thrq->count--;
         }
+        free(elm);
         mux_unlock(&thrq->lock);
     }
     return 0;
@@ -334,7 +335,8 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
  *
  * @return  0 is ok
  * 
- *  function returns when error occured or data received
+ *  function returns when error occured or data received,
+ *  ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno>)
  **/
 int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
 {

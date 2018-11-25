@@ -224,9 +224,9 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size)
     thrq_cb_t *que = (thrq_cb_t*)malloc(sizeof(thrq_cb_t));
     if (que) {
         thrq_init(que, max_size);
+    }
+    if (thrq) {
         *thrq = que;
-    } else {
-        *thrq = 0;
     }
     return que;
 }
@@ -295,11 +295,15 @@ int thrq_concat(thrq_cb_t *thrq1, thrq_cb_t *thrq2)
 thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp)
 {
     thrq_elm_t *var;
+
+    mux_lock(&thrq->lock);
     THRQ_FOREACH(var, thrq) {
         if (elm_cmp(var, data, fmin(len, var->len)) == 0) {
             return var;
         }
     }    
+    mux_unlock(&thrq->lock);
+
     return 0;
 }
 
@@ -315,6 +319,7 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
 {
     int res = 0;
 
+    mux_lock(&thrq->lock);
     res = thrq_insert_tail(thrq, data, len);
     if (res == 0) {
         pthread_mutex_lock(&thrq->cond_lock);
@@ -322,6 +327,7 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
         pthread_cond_signal(&thrq->cond);
         pthread_mutex_unlock(&thrq->cond_lock);
     }
+    mux_unlock(&thrq->lock);
 
     return res;
 }

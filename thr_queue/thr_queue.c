@@ -412,7 +412,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     thrq_elm_t *elm = thrq_first(thrq);
     memcpy(buf, elm->data, fmin(max_size, elm->len));
     thrq_remove(thrq, elm);
-    mux_lock(&thrq->lock);
+    mux_unlock(&thrq->lock);
 
     pthread_mutex_unlock(&thrq->cond_lock);
 

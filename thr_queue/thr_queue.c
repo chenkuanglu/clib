@@ -109,13 +109,24 @@ thrq_elm_t* thrq_last(thrq_cb_t *thrq)
  **/
 int thrq_insert_head(thrq_cb_t *thrq, void *data, int len)
 {
+    /* one byte data at least */
     if (data == 0 || len == 0)
         return -1;
 
+    /* queue is full */
+    mux_lock(&thrq->lock);
+    if (thrq->count >= thrq->max_size) {        
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
+    mux_unlock(&thrq->lock);
+
+    /* memoy allocate */
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
     if (elm == 0) 
         return -1;
 
+    /* insert queue */
     memcpy(elm->data, data, len);
     elm->len = len;
     mux_lock(&thrq->lock);
@@ -138,6 +149,14 @@ int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
 {
     if (data == 0 || len == 0)
         return -1;
+
+    /* queue is full */
+    mux_lock(&thrq->lock);
+    if (thrq->count >= thrq->max_size) {        
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
+    mux_unlock(&thrq->lock);
 
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
     if (elm == 0) 
@@ -167,6 +186,14 @@ int thrq_insert_after(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len
     if (list_elm == 0 || data == 0 || len == 0)
         return -1;
 
+    /* queue is full */
+    mux_lock(&thrq->lock);
+    if (thrq->count >= thrq->max_size) {        
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
+    mux_unlock(&thrq->lock);
+
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
     if (elm == 0) 
         return -1;
@@ -194,6 +221,14 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
 {
     if (list_elm == 0 || data == 0 || len == 0)
         return -1;
+
+    /* queue is full */
+    mux_lock(&thrq->lock);
+    if (thrq->count >= thrq->max_size) {        
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
+    mux_unlock(&thrq->lock);
 
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
     if (elm == 0) 

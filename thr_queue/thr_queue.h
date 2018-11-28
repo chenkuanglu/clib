@@ -1,3 +1,6 @@
+#ifndef __THR_QUEUE__
+#define __THR_QUEUE__
+
 /**
  * @file    thr_queue.h
  * @author  ln
@@ -124,4 +127,6 @@ extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, int len, thrq_cmp_
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* __THR_QUEUE__ */
 

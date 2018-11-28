@@ -1,3 +1,6 @@
+#ifndef __THR_MUX__
+#define __THR_MUX__
+
 /**
  * @file    mux.h
  * @author  ln
@@ -22,4 +25,6 @@ int mux_unlock  (mux_t *mux);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* __THR_MUX__ */
 

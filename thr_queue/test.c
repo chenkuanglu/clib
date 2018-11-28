@@ -20,6 +20,11 @@ void* fn(void *arg)
 }
 
 
+int elmcmp(void *e1, void *e2, int size)
+{
+    return ((*((int *)e1)) - (*((int *)e2)));
+}
+
 int main()
 {
     int num = 101;
@@ -34,9 +39,18 @@ int main()
     num++;
     thrq_insert_tail(myq, &num, 4);
     num++;
+    //thrq_remove(myq, &num, 4);
+
+    thrq_elm_t *var;
+    mux_lock(&myq->lock);
+    THRQ_FOREACH(var, myq) {
+        printf("elm = %d\n", *((int *)(var->data)));
+    }    
+    mux_unlock(&myq->lock);
 
     printf("count = %d\n", thrq_count(myq));
-    printf("head = %d\n", *((int *)((thrq_last(myq))->data)));
+    printf("tail = %d\n", *((int *)((thrq_last(myq))->data)));
+    printf("head = %d\n", *((int *)((thrq_first(myq))->data)));
 
 
     //pthread_t pth;

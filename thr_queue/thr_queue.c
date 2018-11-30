@@ -267,14 +267,36 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size)
 }
 
 /**
- * @brief   free the thrq created before
+ * @brief   free the the all the elements of thrq (except thrq itself)
+ * @param   thrq        queue to clean
+ *          data_clean  function used to free user data
+ *
+ * @return  void
+ **/
+void thrq_clean(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
+{
+    thrq_elm_t *var;
+
+    if (thrq) { 
+        mux_lock(&thrq->lock);
+        THRQ_FOREACH(var, thrq) {
+            thrq_remove(thrq, var, data_clean);
+        }    
+        mux_unlock(&thrq->lock);
+    }
+}
+
+/**
+ * @brief   free the the all the elements of thrq  & thrq itesel
  * @param   thrq    queue to free
  * @return  void
  **/
-void thrq_free(thrq_cb_t *thrq)
+void thrq_destroy(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
 {
-    if (thrq) 
+    if (thrq) { 
+        thrq_clean(thrq, data_clean);
         free(thrq);
+    }
 }
 
 /**
@@ -284,15 +306,18 @@ void thrq_free(thrq_cb_t *thrq)
  *
  * @return  0 is ok
  **/
-int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
+int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm, thrq_data_clean_t data_clean)
 {
     if (elm != 0) {
         mux_lock(&thrq->lock);
+        if (data_clean) {
+            data_clean(elm->data);
+        }
         TAILQ_REMOVE(&thrq->head, elm, entry);
+        free(elm);
         if (thrq->count > 0) {
             thrq->count--;
         }
-        free(elm);
         mux_unlock(&thrq->lock);
     }
     return 0;
@@ -333,7 +358,7 @@ thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp)
 
     mux_lock(&thrq->lock);
     THRQ_FOREACH(var, thrq) {
-        if (elm_cmp(var, data, fmin(len, var->len)) == 0) {
+        if (elm_cmp(var->data, data, fmin(len, var->len)) == 0) {
             return var;
         }
     }    
@@ -411,7 +436,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     mux_lock(&thrq->lock);
     thrq_elm_t *elm = thrq_first(thrq);
     memcpy(buf, elm->data, fmin(max_size, elm->len));
-    thrq_remove(thrq, elm);
+    thrq_remove(thrq, elm, 0);
     mux_unlock(&thrq->lock);
 
     pthread_mutex_unlock(&thrq->cond_lock);

@@ -27,19 +27,60 @@ int elmcmp(void *e1, void *e2, int size)
 
 int main()
 {
-    int num = 101;
+    int fdata, num = 1;
 
-    thrq_create(&myq, 0);
+    if (thrq_create(&myq, 0) < 0) 
+        printf("create & init queue: error\n");
+    else
+        printf("create & init queue: ok\n");
 
-    thrq_insert_tail(myq, &num, 4);
-    num++;
-    thrq_insert_tail(myq, &num, 4);
-    num++;
-    thrq_insert_tail(myq, &num, 4);
-    num++;
-    thrq_insert_tail(myq, &num, 4);
-    num++;
-    //thrq_remove(myq, &num, 4);
+    if (thrq_empty(myq))
+        printf("check empty: ok\n");
+    else 
+        printf("check empty: error\n");
+
+    for (int i=0; i<4; i++) {
+        if (thrq_insert_tail(myq, &num, 4) < 0)
+            printf("insert tail: error\n");
+        else
+            printf("insert tail(%d): ok\n", num);
+        num++;
+    }
+
+    num = -1;
+    for (int i=0; i<4; i++) {
+        if (thrq_insert_head(myq, &num, 4) < 0)
+            printf("insert head: error\n");
+        else
+            printf("insert head(%d): ok\n", num);
+        num--;
+    }
+
+    printf("get count(%d): ok\n", thrq_count(myq));
+    printf("get first(%d): ok\n", THRQ_ELM_DATA(thrq_first(myq), int));
+    printf("get last(%d): ok\n", THRQ_ELM_DATA(thrq_last(myq), int));
+
+    num = 0;
+    fdata = -1;
+    if (thrq_insert_before(myq, thrq_find(myq, &fdata, 4, elmcmp), &num, 4) == 0) 
+        printf("insert before: ok\n");
+    else 
+        printf("insert before: error\n");
+    num = 0;
+    fdata = 1;
+    if (thrq_insert_after(myq, thrq_find(myq, &fdata, 4, elmcmp), &num, 4) == 0) 
+        printf("insert after: ok\n");
+    else 
+        printf("insert after: error\n");
+
+    printf("get count(%d): ok\n", thrq_count(myq));
+
+    printf("remove -3 & 3\n");
+    fdata = -3;
+    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp), 0);
+    fdata = 3;
+    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp), 0);
+    printf("get count(%d): ok\n", thrq_count(myq));
 
     thrq_elm_t *var;
     mux_lock(&myq->lock);
@@ -48,22 +89,14 @@ int main()
     }    
     mux_unlock(&myq->lock);
 
-    printf("count = %d\n", thrq_count(myq));
-    printf("tail = %d\n", *((int *)((thrq_last(myq))->data)));
-    printf("head = %d\n", *((int *)((thrq_first(myq))->data)));
-
-
+    //thrq_clean(myq, 0);  // error: segment error
     //pthread_t pth;
-
-    //printf("create thread\n");
+    //printf("create thread for receive...\n");
     //pthread_create(&pth, 0, fn, 0);
-    //
-    //printf("wait 1 second ...\n");
-    //sleep(1);
+    //for (;;) {
+    //    thrq_send(myq, );
+    //}
 
-    // unlock 2 times
-
-    //pthread_join(pth, 0);
 
     exit(0);
 }

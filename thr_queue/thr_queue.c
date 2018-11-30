@@ -275,15 +275,9 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size)
  **/
 void thrq_clean(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
 {
-    thrq_elm_t *var;
-
-    if (thrq) { 
-        mux_lock(&thrq->lock);
-        THRQ_FOREACH(var, thrq) {
-            thrq_remove(thrq, var, data_clean);
-        }    
-        mux_unlock(&thrq->lock);
-    }
+    while (thrq && !thrq_empty(thrq)) {
+        thrq_remove(thrq, thrq_first(thrq), data_clean);
+    }    
 }
 
 /**
@@ -419,6 +413,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     /* break when error occured or data receive */
     while (res == 0 && thrq->cond_ok <= 0) {
         if (timeout > 0) {
+            printf("------------------------time wati\n");
             res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
         } else {
             res = pthread_cond_wait(&thrq->cond, &thrq->cond_lock);

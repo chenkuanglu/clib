@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <tgmath.h>
+#include <unistd.h>
 
 thrq_cb_t *myq = NULL;
 
@@ -14,7 +15,15 @@ void* fn(void *arg)
 {
     (void)arg;
 
-    printf("thread unlock success\n");
+    int buf;
+
+    for (;;) {
+        int ret = thrq_receive(myq, &buf, 4, 1.5);
+        if (ret == ETIMEDOUT)
+            printf("sub thread rcv timeout");
+        else
+            printf("sub thread get data: %d\n", buf);
+    }
 
     return 0;
 }
@@ -90,13 +99,17 @@ int main()
     mux_unlock(&myq->lock);
 
     //thrq_clean(myq, 0);  // error: segment error
-    //pthread_t pth;
-    //printf("create thread for receive...\n");
-    //pthread_create(&pth, 0, fn, 0);
-    //for (;;) {
-    //    thrq_send(myq, );
-    //}
-
+    //printf("get count(%d): ok\n", thrq_count(myq));
+    pthread_t pth;
+    printf("create thread for receive...\n");
+    pthread_create(&pth, 0, fn, 0);
+    thrq_elm_t *elm;
+    for (;;) {
+        THRQ_FOREACH(var, myq) {
+            thrq_send(myq, &THRQ_ELM_DATA(elm, int), 4);
+            sleep(3);
+        }
+    }
 
     exit(0);
 }

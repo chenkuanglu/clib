@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <tgmath.h>
+#include <sys/time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -353,6 +354,7 @@ thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp)
     mux_lock(&thrq->lock);
     THRQ_FOREACH(var, thrq) {
         if (elm_cmp(var->data, data, fmin(len, var->len)) == 0) {
+            mux_unlock(&thrq->lock);
             return var;
         }
     }    
@@ -401,11 +403,15 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
 int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
 {
     int res = 0;
-    struct timespec ts = {0, 0};
+    int nsec;
+    struct timespec ts;
+    struct timeval now;
 
     if (timeout > 0) {
-        ts.tv_sec = (int)(timeout);
-        ts.tv_nsec = (int)((timeout - ts.tv_sec) * 1e6);
+        gettimeofday(&now, NULL);
+        nsec = (long)((timeout - (long)timeout) * 1000000000L) + now.tv_usec*1000L;
+        ts.tv_sec = (long)timeout + now.tv_sec + nsec/1000000000L;
+        ts.tv_nsec = nsec % 1000000000L;
     }
 
     pthread_mutex_lock(&thrq->cond_lock);
@@ -413,7 +419,6 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     /* break when error occured or data receive */
     while (res == 0 && thrq->cond_ok <= 0) {
         if (timeout > 0) {
-            printf("------------------------time wati\n");
             res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
         } else {
             res = pthread_cond_wait(&thrq->cond, &thrq->cond_lock);

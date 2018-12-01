@@ -11,7 +11,9 @@
 extern "C" {
 #endif
 
+#include <errno.h>
 #include <sys/queue.h>
+#include <pthread.h>
 #include "../mux/mux.h"
 
 /**
@@ -48,6 +50,9 @@ typedef struct __thrq_elm {
  **/
 typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 
+typedef int (*thrq_cmp_t)(void*, void*, int len);
+typedef void (*thrq_clean_data_t)(void *data);
+
 /* thread safe queue control block */
 typedef struct {
     thrq_head_t         head;
@@ -59,6 +64,8 @@ typedef struct {
 
     int                 count;
     int                 max_size;
+
+    thrq_clean_data_t   clean_data;
 } thrq_cb_t;
 
 /* lock/unlock thread queue */
@@ -91,11 +98,8 @@ typedef struct {
 
 #define THRQ_ELM_DATA(elm, type)        ( *((type *)((elm)->data)) )
 
-typedef int (*thrq_cmp_t)(void*, void*, int len);
-typedef void (*thrq_data_clean_t)(void *data);
-
-extern int thrq_init            (thrq_cb_t *thrq, int max_size);
-extern void thrq_clean          (thrq_cb_t *thrq, thrq_data_clean_t data_clean);
+extern int thrq_init            (thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data);
+extern void thrq_clean          (thrq_cb_t *thrq);
 
 extern int thrq_empty           (thrq_cb_t *thrq);
 
@@ -104,8 +108,8 @@ extern int thrq_count           (thrq_cb_t *thrq);
 extern thrq_elm_t* thrq_first   (thrq_cb_t *thrq);
 extern thrq_elm_t* thrq_last    (thrq_cb_t *thrq);
 
-extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq, int max_size);
-extern void thrq_destroy        (thrq_cb_t *thrq, thrq_data_clean_t data_clean);
+extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq, int max_size, thrq_clean_data_t clean_data);
+extern void thrq_destroy        (thrq_cb_t *thrq);
 
 extern int thrq_insert_head     (thrq_cb_t *thrq, void *data, int len);
 extern int thrq_insert_tail     (thrq_cb_t *thrq, void *data, int len);
@@ -113,7 +117,7 @@ extern int thrq_insert_tail     (thrq_cb_t *thrq, void *data, int len);
 extern int thrq_insert_after    (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
 extern int thrq_insert_before   (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
 
-extern int thrq_remove          (thrq_cb_t *thrq, thrq_elm_t *elm, thrq_data_clean_t data_clean);
+extern int thrq_remove          (thrq_cb_t *thrq, thrq_elm_t *elm);
 extern int thrq_concat          (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
 
 extern int thrq_send            (thrq_cb_t *thrq, void *data, int len);

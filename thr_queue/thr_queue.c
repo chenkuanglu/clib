@@ -25,7 +25,7 @@ extern "C" {
  *
  * @return  0 is ok
  **/
-int thrq_init(thrq_cb_t *thrq, int max_size)
+int thrq_init(thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data)
 {
     TAILQ_INIT(&thrq->head);
 
@@ -35,6 +35,7 @@ int thrq_init(thrq_cb_t *thrq, int max_size)
 
     thrq->count = 0;
     thrq->cond_ok = 0;
+    thrq->clean_data = clean_data;
     if (max_size <= 0) {
         thrq->max_size = THRQ_MAX_SIZE_DEF;
     } else {
@@ -255,11 +256,11 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
  *          thrq_cb_t *myq;
  *          thrq_create(&myq);
  **/
-thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size)
+thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size, thrq_clean_data_t clean_data)
 {
     thrq_cb_t *que = (thrq_cb_t*)malloc(sizeof(thrq_cb_t));
     if (que) {
-        thrq_init(que, max_size);
+        thrq_init(que, max_size, clean_data);
     }
     if (thrq) {
         *thrq = que;
@@ -269,15 +270,13 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size)
 
 /**
  * @brief   free the the all the elements of thrq (except thrq itself)
- * @param   thrq        queue to clean
- *          data_clean  function used to free user data
- *
+ * @param   thrq    queue to clean
  * @return  void
  **/
-void thrq_clean(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
+void thrq_clean(thrq_cb_t *thrq)
 {
     while (thrq && !thrq_empty(thrq)) {
-        thrq_remove(thrq, thrq_first(thrq), data_clean);
+        thrq_remove(thrq, thrq_first(thrq));
     }    
 }
 
@@ -286,10 +285,10 @@ void thrq_clean(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
  * @param   thrq    queue to free
  * @return  void
  **/
-void thrq_destroy(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
+void thrq_destroy(thrq_cb_t *thrq)
 {
     if (thrq) { 
-        thrq_clean(thrq, data_clean);
+        thrq_clean(thrq);
         free(thrq);
     }
 }
@@ -301,12 +300,12 @@ void thrq_destroy(thrq_cb_t *thrq, thrq_data_clean_t data_clean)
  *
  * @return  0 is ok
  **/
-int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm, thrq_data_clean_t data_clean)
+int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 {
     if (elm != 0) {
         mux_lock(&thrq->lock);
-        if (data_clean) {
-            data_clean(elm->data);
+        if (thrq->clean_data) {
+            thrq->clean_data(elm->data);
         }
         TAILQ_REMOVE(&thrq->head, elm, entry);
         free(elm);
@@ -436,7 +435,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     mux_lock(&thrq->lock);
     thrq_elm_t *elm = thrq_first(thrq);
     memcpy(buf, elm->data, fmin(max_size, elm->len));
-    thrq_remove(thrq, elm, 0);
+    thrq_remove(thrq, elm);
     mux_unlock(&thrq->lock);
 
     pthread_mutex_unlock(&thrq->cond_lock);

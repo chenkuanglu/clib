@@ -41,7 +41,7 @@ int main()
     int fdata, num = 1;
 
     // create & init
-    if (thrq_create(&myq, 0) < 0) 
+    if (thrq_create(&myq, 0, 0) < 0) 
         printf("create & init queue: error\n");
     else
         printf("create & init queue: ok\n");
@@ -95,9 +95,9 @@ int main()
     // remove & find
     printf("remove -3 & 3\n");
     fdata = -3;
-    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp), 0);
+    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp));
     fdata = 3;
-    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp), 0);
+    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp));
     printf("get count(%d): ok\n", thrq_count(myq));
 
     thrq_elm_t *var;
@@ -108,7 +108,7 @@ int main()
     mux_unlock(&myq->lock);
 
     // clean
-    thrq_clean(myq, 0);  
+    thrq_clean(myq);  
     printf("get count(%d): ok\n", thrq_count(myq));
 
     // send & receive

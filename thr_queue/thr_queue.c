@@ -34,7 +34,6 @@ int thrq_init(thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data)
     pthread_cond_init(&thrq->cond, 0);
 
     thrq->count = 0;
-    thrq->cond_ok = 0;
     thrq->clean_data = clean_data;
     if (max_size <= 0) {
         thrq->max_size = THRQ_MAX_SIZE_DEF;
@@ -117,23 +116,25 @@ int thrq_insert_head(thrq_cb_t *thrq, void *data, int len)
 
     /* queue is full */
     mux_lock(&thrq->lock);
+
     if (thrq->count >= thrq->max_size) {        
         mux_unlock(&thrq->lock);
         return -1;
     }
-    mux_unlock(&thrq->lock);
 
     /* memoy allocate */
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
-    if (elm == 0) 
+    if (elm == 0) {
+        mux_unlock(&thrq->lock);
         return -1;
+    }
 
     /* insert queue */
     memcpy(elm->data, data, len);
     elm->len = len;
-    mux_lock(&thrq->lock);
     TAILQ_INSERT_HEAD(&thrq->head, elm, entry);
     thrq->count++;
+
     mux_unlock(&thrq->lock);
 
     return 0;
@@ -154,21 +155,23 @@ int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
 
     /* queue is full */
     mux_lock(&thrq->lock);
+
     if (thrq->count >= thrq->max_size) {        
         mux_unlock(&thrq->lock);
         return -1;
     }
-    mux_unlock(&thrq->lock);
 
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
-    if (elm == 0) 
+    if (elm == 0) {
+        mux_unlock(&thrq->lock);
         return -1;
+    }
 
     memcpy(elm->data, data, len);
     elm->len = len;
-    mux_lock(&thrq->lock);
     TAILQ_INSERT_TAIL(&thrq->head, elm, entry);
     thrq->count++;
+
     mux_unlock(&thrq->lock);
 
     return 0;
@@ -190,21 +193,23 @@ int thrq_insert_after(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len
 
     /* queue is full */
     mux_lock(&thrq->lock);
+
     if (thrq->count >= thrq->max_size) {        
         mux_unlock(&thrq->lock);
         return -1;
     }
-    mux_unlock(&thrq->lock);
 
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
-    if (elm == 0) 
+    if (elm == 0) {
+        mux_unlock(&thrq->lock);
         return -1;
+    }
 
     memcpy(elm->data, data, len);
     elm->len = len;
-    mux_lock(&thrq->lock);
     TAILQ_INSERT_AFTER(&thrq->head, list_elm, elm, entry);
     thrq->count++;
+
     mux_unlock(&thrq->lock);
 
     return 0;
@@ -226,21 +231,23 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
 
     /* queue is full */
     mux_lock(&thrq->lock);
+
     if (thrq->count >= thrq->max_size) {        
         mux_unlock(&thrq->lock);
         return -1;
     }
-    mux_unlock(&thrq->lock);
 
     thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
-    if (elm == 0) 
+    if (elm == 0) {
+        mux_unlock(&thrq->lock);
         return -1;
+    }
 
     memcpy(elm->data, data, len);
     elm->len = len;
-    mux_lock(&thrq->lock);
     TAILQ_INSERT_BEFORE(list_elm, elm, entry);
     thrq->count++;
+
     mux_unlock(&thrq->lock);
 
     return 0;
@@ -375,10 +382,9 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
     int res = 0;
 
     mux_lock(&thrq->lock);
-    res = thrq_insert_tail(thrq, data, len);
     if (res == 0) {
         pthread_mutex_lock(&thrq->cond_lock);
-        thrq->cond_ok++;
+        res = thrq_insert_tail(thrq, data, len);
         pthread_cond_signal(&thrq->cond);
         pthread_mutex_unlock(&thrq->cond_lock);
     }
@@ -416,7 +422,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     pthread_mutex_lock(&thrq->cond_lock);
 
     /* break when error occured or data receive */
-    while (res == 0 && thrq->cond_ok <= 0) {
+    while (res == 0 && thrq->count <= 0) {
         if (timeout > 0) {
             res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
         } else {
@@ -429,9 +435,6 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     }
 
     /* data receved */
-    if (thrq->cond_ok > 0) {
-        thrq->cond_ok--;
-    }
     mux_lock(&thrq->lock);
     thrq_elm_t *elm = thrq_first(thrq);
     memcpy(buf, elm->data, fmin(max_size, elm->len));

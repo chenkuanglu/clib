@@ -60,7 +60,6 @@ typedef struct {
 
     pthread_mutex_t     cond_lock;
     pthread_cond_t      cond;
-    int                 cond_ok;
 
     int                 count;
     int                 max_size;

@@ -108,8 +108,8 @@ int main()
     mux_unlock(&myq->lock);
 
     // clean
-    thrq_clean(myq);  
-    printf("get count(%d): ok\n", thrq_count(myq));
+    //thrq_clean(myq);  
+    //printf("get count(%d): ok\n", thrq_count(myq));
 
     // send & receive
     pthread_t pth;

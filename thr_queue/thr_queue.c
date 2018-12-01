@@ -382,12 +382,12 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
     int res = 0;
 
     mux_lock(&thrq->lock);
-    if (res == 0) {
-        pthread_mutex_lock(&thrq->cond_lock);
-        res = thrq_insert_tail(thrq, data, len);
-        pthread_cond_signal(&thrq->cond);
-        pthread_mutex_unlock(&thrq->cond_lock);
-    }
+
+    pthread_mutex_lock(&thrq->cond_lock);
+    res = thrq_insert_tail(thrq, data, len);
+    pthread_cond_signal(&thrq->cond);
+    pthread_mutex_unlock(&thrq->cond_lock);
+
     mux_unlock(&thrq->lock);
 
     return res;

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
@@ -34,7 +35,7 @@ int thrq_init(thrq_cb_t *thrq)
 
     thrq->count      = 0;
     thrq->clean_data = 0;
-    thrq->cmp_elm    = 0;
+    thrq->cmp_elm    = memcmp;
     thrq->max_size   = THRQ_MAX_SIZE_DEF;
 
     return 0;
@@ -42,7 +43,7 @@ int thrq_init(thrq_cb_t *thrq)
 
 /**
  * @brief   set a function to free user data if neccessary
- * @param   thrq        queue to be init
+ * @param   thrq        queue
  *          clean_data  func to free user data
  *
  * @return  none
@@ -58,7 +59,7 @@ void thrq_set_clean(thrq_cb_t *thrq, thrq_clean_data_t clean_data)
 
 /**
  * @brief   set a function to compare user data if neccessary
- * @param   thrq        queue to be init
+ * @param   thrq        queue
  *          clean_data  func to compare user data
  *
  * @return  none
@@ -72,7 +73,7 @@ void thrq_set_compare(thrq_cb_t *thrq, thrq_cmp_data_t compare_data)
 
 /**
  * @brief   set max size of thrq
- * @param   thrq        queue to be init
+ * @param   thrq        queue
  *          max_size    >= count of elements 
  *
  * @return  none
@@ -316,7 +317,7 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq)
 }
 
 /**
- * @brief   free the the all the elements of thrq (except thrq itself)
+ * @brief   free all the elements of thrq (except thrq itself)
  * @param   thrq    queue to clean
  * @return  void
  **/
@@ -328,7 +329,7 @@ void thrq_clean(thrq_cb_t *thrq)
 }
 
 /**
- * @brief   free the the all the elements of thrq  & thrq itesel
+ * @brief   free all the elements of thrq  & thrq itself
  * @param   thrq    queue to free
  * @return  void
  **/
@@ -397,10 +398,6 @@ thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len)
     thrq_elm_t *var;
 
     mux_lock(&thrq->lock);
-    if (thrq->cmp_elm == 0) {
-        mux_unlock(&thrq->lock);
-        return 0;
-    }
     THRQ_FOREACH(var, thrq) {
         if ((thrq->cmp_elm)(var->data, data, fmin(len, var->len)) == 0) {
             mux_unlock(&thrq->lock);

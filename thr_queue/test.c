@@ -31,7 +31,7 @@ void* fn(void *arg)
 }
 
 
-int elmcmp(void *e1, void *e2, int size)
+int elmcmp(const void *e1, const void *e2, size_t size)
 {
     return ((*((int *)e1)) - (*((int *)e2)));
 }
@@ -46,7 +46,7 @@ int main()
     else
         printf("create & init queue: ok\n");
 
-    thrq_set_compare(myq, elmcmp);
+    //thrq_set_compare(myq, elmcmp);
 
     // empty
     if (thrq_empty(myq))

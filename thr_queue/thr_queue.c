@@ -21,11 +21,10 @@ extern "C" {
 /**
  * @brief   init thrq control block
  * @param   thrq        queue to be init
- *          max_size    max queue size
  *
  * @return  0 is ok
  **/
-int thrq_init(thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data)
+int thrq_init(thrq_cb_t *thrq)
 {
     TAILQ_INIT(&thrq->head);
 
@@ -33,15 +32,56 @@ int thrq_init(thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data)
     pthread_mutex_init(&thrq->cond_lock, 0);
     pthread_cond_init(&thrq->cond, 0);
 
-    thrq->count = 0;
-    thrq->clean_data = clean_data;
-    if (max_size <= 0) {
-        thrq->max_size = THRQ_MAX_SIZE_DEF;
-    } else {
-        thrq->max_size = max_size;
-    }
+    thrq->count      = 0;
+    thrq->clean_data = 0;
+    thrq->cmp_elm    = 0;
+    thrq->max_size   = THRQ_MAX_SIZE_DEF;
 
     return 0;
+}
+
+/**
+ * @brief   set a function to free user data if neccessary
+ * @param   thrq        queue to be init
+ *          clean_data  func to free user data
+ *
+ * @return  none
+ *
+ * func 'clean_data' will be called while removing element
+ **/
+void thrq_set_clean(thrq_cb_t *thrq, thrq_clean_data_t clean_data)
+{
+    mux_lock(&thrq->lock);
+    thrq->clean_data = clean_data;
+    mux_unlock(&thrq->lock);
+}
+
+/**
+ * @brief   set a function to compare user data if neccessary
+ * @param   thrq        queue to be init
+ *          clean_data  func to compare user data
+ *
+ * @return  none
+ **/
+void thrq_set_compare(thrq_cb_t *thrq, thrq_cmp_data_t compare_data)
+{
+    mux_lock(&thrq->lock);
+    thrq->cmp_elm = compare_data;
+    mux_unlock(&thrq->lock);
+}
+
+/**
+ * @brief   set max size of thrq
+ * @param   thrq        queue to be init
+ *          max_size    >= count of elements 
+ *
+ * @return  none
+ **/
+void thrq_set_maxsize(thrq_cb_t *thrq, int max_size)
+{
+    mux_lock(&thrq->lock);
+    thrq->max_size = max_size;
+    mux_unlock(&thrq->lock);
 }
 
 /**
@@ -263,14 +303,14 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
  *          thrq_cb_t *myq;
  *          thrq_create(&myq);
  **/
-thrq_cb_t* thrq_create(thrq_cb_t **thrq, int max_size, thrq_clean_data_t clean_data)
+thrq_cb_t* thrq_create(thrq_cb_t **thrq)
 {
     thrq_cb_t *que = (thrq_cb_t*)malloc(sizeof(thrq_cb_t));
     if (que) {
-        thrq_init(que, max_size, clean_data);
+        thrq_init(que);
     }
     if (thrq) {
-        *thrq = que;
+        *thrq = que;    /* invalid or NULL */
     }
     return que;
 }
@@ -347,19 +387,22 @@ int thrq_concat(thrq_cb_t *thrq1, thrq_cb_t *thrq2)
 /**
  * @brief   find element from queue
  * @param   thrq        queue to be insert
- *          list_elm    the queue elment which to insert before
- *          data        the data to insert
+ *          data        the data to find
  *          len         data length
  *
  * @return  return the pointer to the element found
  **/
-thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp)
+thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len)
 {
     thrq_elm_t *var;
 
     mux_lock(&thrq->lock);
+    if (thrq->cmp_elm == 0) {
+        mux_unlock(&thrq->lock);
+        return 0;
+    }
     THRQ_FOREACH(var, thrq) {
-        if (elm_cmp(var->data, data, fmin(len, var->len)) == 0) {
+        if ((thrq->cmp_elm)(var->data, data, fmin(len, var->len)) == 0) {
             mux_unlock(&thrq->lock);
             return var;
         }
@@ -403,7 +446,7 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
  * @return  0 is ok
  * 
  *  function returns when error occured or data received,
- *  ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno>)
+ *  ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno.h>)
  **/
 int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
 {
@@ -422,7 +465,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     pthread_mutex_lock(&thrq->cond_lock);
 
     /* break when error occured or data receive */
-    while (res == 0 && thrq->count <= 0) {
+    while (res == 0 && thrq_count(thrq) <= 0) {
         if (timeout > 0) {
             res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
         } else {
@@ -434,7 +477,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
         return res;
     }
 
-    /* data receved */
+    /* data received */
     mux_lock(&thrq->lock);
     thrq_elm_t *elm = thrq_first(thrq);
     memcpy(buf, elm->data, fmin(max_size, elm->len));

@@ -41,10 +41,12 @@ int main()
     int fdata, num = 1;
 
     // create & init
-    if (thrq_create(&myq, 0, 0) < 0) 
+    if (thrq_create(&myq) < 0) 
         printf("create & init queue: error\n");
     else
         printf("create & init queue: ok\n");
+
+    thrq_set_compare(myq, elmcmp);
 
     // empty
     if (thrq_empty(myq))
@@ -79,13 +81,13 @@ int main()
     // insert before & after
     num = 0;
     fdata = -1;
-    if (thrq_insert_before(myq, thrq_find(myq, &fdata, 4, elmcmp), &num, 4) == 0) 
+    if (thrq_insert_before(myq, thrq_find(myq, &fdata, 4), &num, 4) == 0) 
         printf("insert before -1(0): ok\n");
     else 
         printf("insert before: error\n");
     num = 0;
     fdata = 1;
-    if (thrq_insert_after(myq, thrq_find(myq, &fdata, 4, elmcmp), &num, 4) == 0) 
+    if (thrq_insert_after(myq, thrq_find(myq, &fdata, 4), &num, 4) == 0) 
         printf("insert after 1(0): ok\n");
     else 
         printf("insert after: error\n");
@@ -95,9 +97,9 @@ int main()
     // remove & find
     printf("remove -3 & 3\n");
     fdata = -3;
-    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp));
+    thrq_remove(myq, thrq_find(myq, &fdata, 4));
     fdata = 3;
-    thrq_remove(myq, thrq_find(myq, &fdata, 4, elmcmp));
+    thrq_remove(myq, thrq_find(myq, &fdata, 4));
     printf("get count(%d): ok\n", thrq_count(myq));
 
     thrq_elm_t *var;

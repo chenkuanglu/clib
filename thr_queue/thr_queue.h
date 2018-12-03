@@ -50,7 +50,7 @@ typedef struct __thrq_elm {
  **/
 typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 
-typedef int (*thrq_cmp_t)(void*, void*, int len);
+typedef int (*thrq_cmp_data_t)(void*, void*, int len);
 typedef void (*thrq_clean_data_t)(void *data);
 
 /* thread safe queue control block */
@@ -65,6 +65,7 @@ typedef struct {
     int                 max_size;
 
     thrq_clean_data_t   clean_data;
+    thrq_cmp_data_t     cmp_elm;
 } thrq_cb_t;
 
 /* lock/unlock thread queue */
@@ -97,17 +98,20 @@ typedef struct {
 
 #define THRQ_ELM_DATA(elm, type)        ( *((type *)((elm)->data)) )
 
-extern int thrq_init            (thrq_cb_t *thrq, int max_size, thrq_clean_data_t clean_data);
+extern int thrq_init            (thrq_cb_t *thrq);
 extern void thrq_clean          (thrq_cb_t *thrq);
 
-extern int thrq_empty           (thrq_cb_t *thrq);
+extern void thrq_set_clean      (thrq_cb_t *thrq, thrq_clean_data_t clean_data);
+extern void thrq_set_compare    (thrq_cb_t *thrq, thrq_cmp_data_t compare_data);
+extern void thrq_set_maxsize    (thrq_cb_t *thrq, int max_size);
 
+extern int thrq_empty           (thrq_cb_t *thrq);
 extern int thrq_count           (thrq_cb_t *thrq);
 
 extern thrq_elm_t* thrq_first   (thrq_cb_t *thrq);
 extern thrq_elm_t* thrq_last    (thrq_cb_t *thrq);
 
-extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq, int max_size, thrq_clean_data_t clean_data);
+extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq);
 extern void thrq_destroy        (thrq_cb_t *thrq);
 
 extern int thrq_insert_head     (thrq_cb_t *thrq, void *data, int len);
@@ -122,7 +126,7 @@ extern int thrq_concat          (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
 extern int thrq_send            (thrq_cb_t *thrq, void *data, int len);
 extern int thrq_receive         (thrq_cb_t *thrq, void *buf, int max_size, double timeout);
 
-extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, int len, thrq_cmp_t elm_cmp);
+extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, int len);
 
 /* thread safe */
 #define thrq_begin(thrq, data, len)     thrq_first(thrq)

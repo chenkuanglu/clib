@@ -35,6 +35,7 @@ int thrq_init(thrq_cb_t *thrq)
 
     thrq->count      = 0;
     thrq->clean_data = 0;
+    thrq->copy_data  = memcpy;
     thrq->cmp_elm    = memcmp;
     thrq->max_size   = THRQ_MAX_SIZE_DEF;
 
@@ -54,6 +55,22 @@ void thrq_set_clean(thrq_cb_t *thrq, thrq_clean_data_t clean_data)
 {
     mux_lock(&thrq->lock);
     thrq->clean_data = clean_data;
+    mux_unlock(&thrq->lock);
+}
+
+/**
+ * @brief   set a function to copy user data if neccessary
+ * @param   thrq        queue
+ *          copy_data   func to copy user data
+ *
+ * @return  none
+ *
+ * func 'copy_data' will be called while insert/receiving data
+ **/
+void thrq_set_copy(thrq_cb_t *thrq, thrq_copy_data_t copy_data)
+{
+    mux_lock(&thrq->lock);
+    thrq->copy_data = copy_data;
     mux_unlock(&thrq->lock);
 }
 
@@ -171,7 +188,7 @@ int thrq_insert_head(thrq_cb_t *thrq, void *data, int len)
     }
 
     /* insert queue */
-    memcpy(elm->data, data, len);
+    thrq->copy_data(elm->data, data, len);
     elm->len = len;
     TAILQ_INSERT_HEAD(&thrq->head, elm, entry);
     thrq->count++;
@@ -208,7 +225,7 @@ int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
         return -1;
     }
 
-    memcpy(elm->data, data, len);
+    thrq->copy_data(elm->data, data, len);
     elm->len = len;
     TAILQ_INSERT_TAIL(&thrq->head, elm, entry);
     thrq->count++;
@@ -246,7 +263,7 @@ int thrq_insert_after(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len
         return -1;
     }
 
-    memcpy(elm->data, data, len);
+    thrq->copy_data(elm->data, data, len);
     elm->len = len;
     TAILQ_INSERT_AFTER(&thrq->head, list_elm, elm, entry);
     thrq->count++;
@@ -284,7 +301,7 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
         return -1;
     }
 
-    memcpy(elm->data, data, len);
+    thrq->copy_data(elm->data, data, len);
     elm->len = len;
     TAILQ_INSERT_BEFORE(list_elm, elm, entry);
     thrq->count++;
@@ -311,7 +328,7 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq)
         thrq_init(que);
     }
     if (thrq) {
-        *thrq = que;    /* invalid or NULL */
+        *thrq = que;
     }
     return que;
 }
@@ -477,7 +494,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     /* data received */
     mux_lock(&thrq->lock);
     thrq_elm_t *elm = thrq_first(thrq);
-    memcpy(buf, elm->data, fmin(max_size, elm->len));
+    thrq->copy_data(buf, elm->data, fmin(max_size, elm->len));
     thrq_remove(thrq, elm);
     mux_unlock(&thrq->lock);
 

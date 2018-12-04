@@ -51,6 +51,7 @@ typedef struct __thrq_elm {
 typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 
 typedef int (*thrq_cmp_data_t)(const void*, const void*, size_t len);
+typedef void* (*thrq_copy_data_t)(void*, const void*, size_t len);
 typedef void (*thrq_clean_data_t)(void *data);
 
 /* thread safe queue control block */
@@ -65,6 +66,7 @@ typedef struct {
     int                 max_size;
 
     thrq_clean_data_t   clean_data;
+    thrq_copy_data_t    copy_data;
     thrq_cmp_data_t     cmp_elm;
 } thrq_cb_t;
 
@@ -102,6 +104,7 @@ extern int thrq_init            (thrq_cb_t *thrq);
 extern void thrq_clean          (thrq_cb_t *thrq);
 
 extern void thrq_set_clean      (thrq_cb_t *thrq, thrq_clean_data_t clean_data);
+extern void thrq_set_copy       (thrq_cb_t *thrq, thrq_copy_data_t copy_data);
 extern void thrq_set_compare    (thrq_cb_t *thrq, thrq_cmp_data_t compare_data);
 extern void thrq_set_maxsize    (thrq_cb_t *thrq, int max_size);
 

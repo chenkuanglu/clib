@@ -14,7 +14,7 @@ extern "C" {
 #include <errno.h>
 #include <sys/queue.h>
 #include <pthread.h>
-#include "../mux/mux.h"
+#include "mux.h"
 
 /**
  * declare user data type with list head struct: 

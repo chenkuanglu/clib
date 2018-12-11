@@ -10,7 +10,10 @@ int main(void)
         return -1;
     }
 
-    const char* str = dictionary_get(dict, "nonce:nonce_hit", "none");
+    unsigned addr = iniparser_getlongint(dict, "program:program_addr", -1);
+    printf("get program addr = 0x%08x\n", addr);
+
+    const char* str = iniparser_getstring(dict, "nonce:nonce_hit", "none");
     printf("get nonce_hit str = '%s'\n", str);
 
     iniparser_freedict(dict);

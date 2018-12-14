@@ -1,7 +1,7 @@
 /**
  * @file    cstr.h
  * @author  ln
- * @brief   concat string with '##' 
+ * @brief   the c string process
  **/
 
 #ifndef __C_STRING_H__

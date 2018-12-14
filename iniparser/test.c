@@ -17,8 +17,8 @@ int main(void)
         return -1;
     }
 
-    unsigned addr = iniparser_getlongint(dict, "program:address", -1);
-    printf("get program addr = 0x%08x\n", addr);
+    const char *s= iniparser_getstring(dict, "program:address", "1");
+    printf("get program addr = 0x%s\n", s);
 
     const char* str = iniparser_getstring(dict, "nonce:nonce_hit", "none");
     printf("get nonce_hit str = '%s'\n", str);

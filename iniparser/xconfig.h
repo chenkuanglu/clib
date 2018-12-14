@@ -10,6 +10,8 @@
 #include "cstr.h"
 #include <stdbool.h>
 
+#define DICT_ENTRY                  dict_entry
+
 #define COLON                       :
 #define MAKE_DICT_KEY(sec, key)     ( MAKE_STRING(sec) MAKE_STRING(COLON) MAKE_STRING(key) )
 
@@ -22,7 +24,7 @@
 #define INI_KEY_CHECK_FLAG          check_flag
 #define INI_KEY_STOP_BITS           stop_bits
 
-/* [bench_mark] */
+/* [benchmark] */
 #define INI_SECTION_BENCHMARK       benchmark
 
 #define INI_KEY_BENCHMARK_EN      	benchmark_en
@@ -39,17 +41,22 @@
 enum { None, Odd, Even };
 
 typedef struct {
-	long    baudrate;
-	long    data_bits;
-	long    check_flag;
-	long    stop_bits;
+    /* internal dictionary */
+    dictionary *DICT_ENTRY;
 
-	bool    benchmark_en;
+    /* section [serial] */
+	long        baudrate;
+	long        data_bits;
+	long        check_flag;
+	long        stop_bits;
+
+    /* section [benchmark] */
+	bool        benchmark_en;
 } xconfig_t;
 
 extern xconfig_t*   xconfig_init    (xconfig_t* xconfig);
 extern xconfig_t*   xconfig_create  (void);
-extern int          xconfig_load    (const char *filename);
+extern int          xconfig_load    (xconfig_t *xconfig, const char *filename);
 extern void         xconfig_delete  (xconfig_t *xconfig);
 
 #endif

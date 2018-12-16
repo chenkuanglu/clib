@@ -1,30 +1,37 @@
-#include <stdio.h>
-#include "iniparser.h"
+// xconfig & iniparser test
 
-#define CFG_MAKE_KEY(sec, key)      CFG_CONCAT_STR(sec, key)
-#define CFG_CONCAT_STR(sec, key)    sec##_##key
-
-#define __CFG_STRING(x)             (#x)
-#define CFG_STRING(x)               __CFG_STRING(x)
-#define CFG_PROGRAM_ADDR            CFG_STRING(CFG_MAKE_KEY(program, address))
+#include "xconfig.h"
 
 int main(void)
 {
-    dictionary *dict = NULL;
-
-    dict = iniparser_load("cfg.ini");
-    if (dict == NULL) {
+    const char *filename = "config.ini";
+    xconfig_t *config = xconfig_new();
+    if (config == NULL) {
+        printfd(CCL_RED "xconfig: fail to create\n" CCL_END);
         return -1;
     }
-
-    const char *s= iniparser_getstring(dict, "program:address", "1");
-    printf("get program addr = 0x%s\n", s);
-
-    const char* str = iniparser_getstring(dict, "nonce:nonce_hit", "none");
-    printf("get nonce_hit str = '%s'\n", str);
-
-    printf("concat = '%s'\n", CFG_PROGRAM_ADDR);
-
-    iniparser_freedict(dict);
+    
+    int res = xconfig_load(config, filename);
+    if (res < 0) {
+        printfd(CCL_RED "xconfig: fail to load file '%s'\n" CCL_END, filename);
+        return -1;
+    }
+    
+    printfd(CCL_CYAN "baudrate = %d\n" CCL_END, config->baudrate);
+    printfd(CCL_CYAN "data_bits = %d\n" CCL_END, config->data_bits);
+    char *s = NULL;
+    if (config->check_flag == None) 
+        s = "None";
+    else if (config->check_flag == Odd) 
+        s = "Odd";
+    else if (config->check_flag == Even)
+        s = "Even";
+    else 
+        s = "Unkown";
+    printfd(CCL_CYAN "check_flag = %s\n" CCL_END, s);
+    printfd(CCL_CYAN "stop_bits = %d\n" CCL_END, config->stop_bits);
+    
+    xconfig_delete(config);
     return 0;
 }
+

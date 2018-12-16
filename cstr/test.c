@@ -1,19 +1,16 @@
-#include <stdio.h>
 #include "cstr.h"
-
-#define COLON                       :
-#define MAKE_DICT_KEY(sec, key)     ( MAKE_STRING(sec) MAKE_STRING(COLON) MAKE_STRING(key) )
-
-/* user config */
-#define INI_SEC_PROGRAM             program
-#define INI_KEY_PROGRAM_ADDR        address
-
-#define DICT_KEY_PROGRAM_ADDR       MAKE_DICT_KEY(INI_SEC_PROGRAM, INI_KEY_PROGRAM_ADDR)
 
 int main(void)
 {
-    printf("ini dict key: %s\n", DICT_KEY_PROGRAM_ADDR);
-
+    
+    
+    const char *str = "ABC123def";
+    char buf[32];
+    strlwr(buf, str, 32);
+    printfd(CCL_BLUE "strlwr: %s > %s\n" CCL_END, str, buf);
+    strupr(buf, str, 32);
+    printfd(CCL_BLUE "strupr: %s > %s\n" CCL_END, str, buf);
+    
     return 0;
 }
 

@@ -8,12 +8,14 @@
 #define __C_XCONFIG_H__
 
 #include "cstr.h"
+#include "dictionary.h"
+#include "iniparser.h"
 #include <stdbool.h>
 
 #define DICT_ENTRY                  dict_entry
 
 #define COLON                       :
-#define MAKE_DICT_KEY(sec, key)     ( MAKE_STRING(sec) MAKE_STRING(COLON) MAKE_STRING(key) )
+#define MAKE_DICT_KEY(sec, key)     ( MAKE_CSTR(sec) MAKE_CSTR(COLON) MAKE_CSTR(key) )
 
 
 /* [serial] */
@@ -29,13 +31,22 @@
 
 #define INI_KEY_BENCHMARK_EN      	benchmark_en
 
-/* make/declare xconfig key */
+/* make/declare xconfig MACRO */
 #define CFG_BAUDRATE                MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_BAUDRATE)
 #define CFG_DATA_BITS               MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_DATA_BITS)
 #define CFG_CHECK_FLAG              MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_CHECK_FLAG)
 #define CFG_STOP_BITS               MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_STOP_BITS)
 
 #define CFG_BENCHMARK_EN            MAKE_DICT_KEY(INI_SECTION_BENCHMARK, INI_KEY_BENCHMARK_EN)
+
+/* default config value if ini not config */
+#define BAUDRATE_DEFAULT            115200
+#define DATA_BITS_DEFAULT           8
+#define CHECK_FLAG_DEFAULT          None
+#define STOP_BITS_DEFAULT           1
+
+#define BENCHMARK_EN_DEFAULT        false
+
 
 /* check flag */
 enum { None, Odd, Even };
@@ -55,8 +66,8 @@ typedef struct {
 } xconfig_t;
 
 extern xconfig_t*   xconfig_init    (xconfig_t* xconfig);
-extern xconfig_t*   xconfig_create  (void);
-extern int          xconfig_load    (xconfig_t *xconfig, const char *filename);
+extern xconfig_t*   xconfig_new     (void);
+extern int          xconfig_load    (xconfig_t *xconfig, const char *inifile);
 extern void         xconfig_delete  (xconfig_t *xconfig);
 
 #endif

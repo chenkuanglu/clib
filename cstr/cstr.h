@@ -8,6 +8,7 @@
 #define __C_STRING_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
 #include <string.h>
@@ -64,18 +65,22 @@
 #define CCL_WHILE                       CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHILE)) CSIE
 #define CCL_WHILE_HL                    CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHILE)) ";" \
                                              MAKE_CSTR(SGR_HIGHLIGHT) CSIE
-#define CCL_GRAY_DARK                   CSIB MAKE_CSTR(SGR_GRAY_DARK) ";" \
-                                             MAKE_CSTR(SGR_HIGHLIGHT) CSIE
+#define CCL_GRAY_DARK                   CSIB MAKE_CSTR(SGR_GRAY_DARK) CSIE
 #define CCL_END                         CSIB MAKE_CSTR(SGR_INIT) CSIE
 
-extern int      printfd     (const char *format, ...);
-extern int      vprintfd    (const char *format, va_list param);
+extern int              printfd     (const char *format, ...);
+extern int              vprintfd    (const char *format, va_list param);
 
-extern char*    strlwr      (char *out, const char *in, unsigned size);
-extern char*    strupr      (char *out, const char *in, unsigned size);
+extern char*            strlwr      (char *out, const char *in, unsigned size);
+extern char*            strupr      (char *out, const char *in, unsigned size);
+
+extern int              bin2hex     (char *hex, unsigned hex_size, const void *bin, unsigned len);
+extern char*            abin2hex    (const void *bin, unsigned len);
+
+extern void             hex2bin     (void *bin, unsigned bin_size, const char *hex, unsigned len);
+extern unsigned char*   ahex2bin    (const char *hex, unsigned len);
 
 // print memory by byte, int 
-// bin2hex, hex2bin
 // split un-split
 
 #endif

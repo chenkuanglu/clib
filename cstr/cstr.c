@@ -94,3 +94,54 @@ char* strupr(char *out, const char *in, unsigned size)
     return out ;
 }
 
+int bin2hex(char *hex, unsigned hex_size, const void *bin, unsigned len)
+{
+    unsigned i = 0;
+    for (i = 0; i < len; i++) {
+        if (hex_size < (i+1)*2 + 1) {
+            i++;
+            break;
+        }
+        sprintf(&hex[i*2], "%02x", ((unsigned char *)bin)[i]);
+    }
+    hex[i*2] = '\0';
+    return i*2;
+}
+
+char* abin2hex(const void *bin, unsigned len)
+{
+    char *s = (char*)malloc((len * 2) + 1);
+    if (s != NULL) {
+        bin2hex(s, (len * 2) + 1, bin, len);
+    }
+    return s;
+}
+
+void hex2bin(void *bin, unsigned bin_size, const char *hex, unsigned len)
+{
+    if (len == 0)
+        len = strlen(hex);
+
+    char buf[4] = {0};
+    unsigned num = (bin_size*2 > len) ? len/2: bin_size;
+    while (*hex && num) {
+        buf[0] = *hex++;
+        buf[1] = *hex++;
+        *((unsigned char *)bin) = (unsigned char)strtol(buf, NULL, 16);
+        num--;
+        bin++;
+    }
+}
+
+unsigned char* ahex2bin(const char *hex, unsigned len)
+{
+    if (len == 0)
+        len = strlen(hex);
+
+    unsigned char *b = (unsigned char*)malloc(len/2);
+    if (b != NULL) {
+        hex2bin(b, len/2, hex, len);
+    }
+    return b;
+}
+

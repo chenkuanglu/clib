@@ -1,1 +1,1 @@
-gcc -o test.out test.c cstr.c -I.
+gcc -Wall -o test.out test.c cstr.c -I.

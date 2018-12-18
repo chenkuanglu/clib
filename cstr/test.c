@@ -2,29 +2,27 @@
 
 int main(void)
 {
-    unsigned int word = 0x1234abcd;
+    const char str[] = "112233445566778899aabbCCddEEff";
+    char buf[256] = {0};
 
-    const char *str = "AB1234de";
-    char buf[32];
-    strlwr(buf, str, 32);
-    printfd(CCL_BLUE "strlwr: %s > %s\n" CCL_END, str, buf);
-    strupr(buf, str, 32);
-    printfd(CCL_BLUE "strupr: %s > %s\n" CCL_END, str, buf);
+    strlwr(buf, str, sizeof(buf));
+    printfd(CCL_YELLOW "strlwr: %s > %s\n" CCL_END, str, buf);
+    strupr(buf, str, sizeof(buf));
+    printfd(CCL_YELLOW "strupr: %s > %s\n" CCL_END, str, buf);
 
-    bin2hex(buf, 9, &word, 4);
-    printfd(CCL_BLUE "bin2hex: 0x%08x > '%s'\n" CCL_END, word, buf);
-    bin2hex(buf, 8, &word, 4);
-    printfd(CCL_BLUE "bin2hex: 0x%008x > '%s'\n" CCL_END, word, buf);
-    char *ahex = abin2hex(&word, 4);
-    printfd(CCL_BLUE "abin2hex: 0x%008x > '%s'\n" CCL_END, word, ahex);
-    free(ahex);
-    word = 0;
-    hex2bin(&word, 4, str, 8);
-    printfd(CCL_BLUE "hex2bin: '%s' > 0x%08x\n" CCL_END, str, word);
-    unsigned char *abin = ahex2bin(str, 0);
-    printfd(CCL_BLUE "hex2bin: '%s' > 0x%08x\n" CCL_END, str, *(unsigned int *)abin);
+    unsigned char *abin = (unsigned char *)ahex2bin(str);
+    char *ahex = abin2hex(abin, 15);
+    printfd(CCL_YELLOW "ahex2bin & abin2hex: '%s'\n" CCL_END, ahex);
+
+    memswap(ahex, ahex, 30, 0);
+    printfd(CCL_YELLOW "memswap all: '%s'\n" CCL_END, ahex);
+
+    memswap(ahex, ahex, 30, 0);
+    memswap(ahex, ahex, 30, 4);
+    printfd(CCL_YELLOW "memswap 4: '%s'\n" CCL_END, ahex);
+
     free(abin);
-    
+    free(ahex);
     return 0;
 }
 

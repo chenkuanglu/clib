@@ -6,6 +6,13 @@
 
 #include "cstr.h"
 
+/**
+ * @brief   print format date like [2018-01-01 23:59:59]
+ * @param   void
+ * @return  number of char printed
+ *
+ * internal function
+ **/
 static int __print_date(void)
 {
     struct tm ltm; 
@@ -17,6 +24,13 @@ static int __print_date(void)
     return num;
 }
 
+/**
+ * @brief   print format string with date([2018-01-01 23:59:59]) prefix
+ * @param   format      hex to convert
+ *          param       parameter list
+ *
+ * @return  number of char printed
+ **/
 int vprintfd(const char *format, va_list param)
 {
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
@@ -29,6 +43,13 @@ int vprintfd(const char *format, va_list param)
     return num;
 }
 
+/**
+ * @brief   print format string with date([2018-01-01 23:59:59]) prefix
+ * @param   format      hex to convert
+ *          ...         variable parameters
+ *
+ * @return  number of char printed
+ **/
 int printfd(const char *format, ...)
 {
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -94,54 +115,132 @@ char* strupr(char *out, const char *in, unsigned size)
     return out ;
 }
 
-int bin2hex(char *hex, unsigned hex_size, const void *bin, unsigned len)
+/**
+ * @brief   Convert bin to hex
+ * @param   hex         Output string buffer
+ *          bin         bin to convert
+ *          len         lenght of the bin to convert
+ *
+ * @return  the number of char in hex buffer
+ **/
+int bin2hex(char *hex, const void *bin, unsigned len)
 {
+    if (bin == NULL || hex == NULL || len == 0) 
+        return 0;
     unsigned i = 0;
     for (i = 0; i < len; i++) {
-        if (hex_size < (i+1)*2 + 1) {
-            i++;
-            break;
-        }
         sprintf(&hex[i*2], "%02x", ((unsigned char *)bin)[i]);
     }
     hex[i*2] = '\0';
     return i*2;
 }
 
+/**
+ * @brief   Convert bin to hex & allocate output buffer
+ * @param   bin         bin to convert
+ *          len         lenght of the bin to convert
+ *
+ * @return  pointer to the ouput char buffer
+ *
+ * Need to free the pointer returned from this func
+ **/
 char* abin2hex(const void *bin, unsigned len)
 {
+    if (bin == NULL || len == 0) 
+        return NULL;
+
     char *s = (char*)malloc((len * 2) + 1);
     if (s != NULL) {
-        bin2hex(s, (len * 2) + 1, bin, len);
+        bin2hex(s, bin, len);
     }
     return s;
 }
 
-void hex2bin(void *bin, unsigned bin_size, const char *hex, unsigned len)
+/**
+ * @brief   Convert hex to bin
+ * @param   bin         Output bin buffer
+ *          hex         hex to convert
+ *          len         lenght of output bin buffer
+ *
+ * @return  void
+ **/
+void hex2bin(void *bin, const char *hex, unsigned len)
 {
-    if (len == 0)
-        len = strlen(hex);
+    if (bin == NULL || hex == NULL || len == 0) 
+        return;
 
     char buf[4] = {0};
-    unsigned num = (bin_size*2 > len) ? len/2: bin_size;
-    while (*hex && num) {
+    if (strlen(hex) % 2) {
+        buf[0] = *hex++;
+        *((unsigned char *)bin) = (unsigned char)strtol(buf, NULL, 16);
+        bin = (unsigned char *)bin + 1;
+    }
+    while (*hex && len) {
         buf[0] = *hex++;
         buf[1] = *hex++;
         *((unsigned char *)bin) = (unsigned char)strtol(buf, NULL, 16);
-        num--;
-        bin++;
+        len--;
+        bin = (unsigned char *)bin + 1;
     }
 }
 
-unsigned char* ahex2bin(const char *hex, unsigned len)
+/**
+ * @brief   Convert hex to bin
+ * @param   hex         hex to convert
+ *          len         lenght of the hex to convert
+ *
+ * @return  pointer to the ouput bin buffer
+ *
+ * the string 'fde' is same as '0fde'
+ * Need to free the pointer returned from this func
+ **/
+void * ahex2bin(const char *hex)
 {
-    if (len == 0)
-        len = strlen(hex);
+    if (hex == NULL) 
+        return NULL;
 
-    unsigned char *b = (unsigned char*)malloc(len/2);
+    unsigned len = strlen(hex);
+    unsigned char *b = (unsigned char*)malloc(len/2 + 1);
     if (b != NULL) {
-        hex2bin(b, len/2, hex, len);
+        hex2bin(b, hex, len/2 + 1);
     }
-    return b;
+    return (void *)b;
+}
+
+/**
+ * @brief   reverse/swap specified length memory byte-to-byte
+ * @param   out             output buffer
+ *          in              input buffer
+ *          len             size of input buffer
+ *          section_size    size of memory section to swap
+ *
+ * len = 4:
+ * section_size=2:[0][1][2][3] ===> [1][0][3][2]
+ * section_size=4:[0][1][2][3] ===> [3][2][1][0], the same as big/small endian convert on integer
+ *
+ * len 0 means section size is the len
+ *
+ * @return  void
+ **/
+void memswap(void *out, const void *in, unsigned len, unsigned section_size)
+{
+    if (out == NULL || in == NULL || len == 0)
+        return;
+
+    if (section_size == 0) {
+        section_size = len;
+    }
+    unsigned num = len/section_size;
+    for (unsigned i=0; i<num; i++) {
+        char *pin = (char *)in + i*section_size;
+        char *pout = (char *)out + i*section_size;
+        unsigned ss = 0;
+        while (ss < section_size/2) {
+            char c = pin[ss];
+            pout[ss] = pin[section_size - ss - 1];
+            pout[section_size - ss - 1] = c;
+            ss++;
+        }
+    }
 }
 

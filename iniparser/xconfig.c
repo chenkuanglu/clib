@@ -26,7 +26,7 @@ int iniparser_error_callback(const char *format, ...)
     return num;
 }
 
-xconfig_t* xconfig_init(xconfig_t* xconfig)
+static xconfig_t* xconfig_init(xconfig_t* xconfig)
 {
     if (xconfig != NULL) {
         xconfig->DICT_ENTRY     = NULL;

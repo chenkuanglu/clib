@@ -65,7 +65,6 @@ typedef struct {
 	bool        benchmark_en;
 } xconfig_t;
 
-extern xconfig_t*   xconfig_init    (xconfig_t* xconfig);
 extern xconfig_t*   xconfig_new     (void);
 extern int          xconfig_load    (xconfig_t *xconfig, const char *inifile);
 extern void         xconfig_delete  (xconfig_t *xconfig);

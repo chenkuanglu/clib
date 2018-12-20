@@ -255,29 +255,29 @@ void memswap(void *out, const void *in, unsigned len, unsigned section_size)
  * Split number = dict->n
  * Split elment = dictionary_get(dict, "N", NULL)     // N = 0 ~ (dict->n - 1)
  **/
-dictionary* strsplit(char *str, char sep)
-{
-    dictionary* dict = dictionary_new(0);
-    if (dict == NULL) 
-        return NULL;
-
-    char *begin = NULL;
-    char *s = str;
-    int len = strlen(str);
-    while (len) {
-        if (*s == ',' || *s == ' ') {
-            if (begin != NULL) {
-                dictionary_set();
-                begin = NULL;
-            }
-        } else { 
-            if (begin == NULL) {
-                begin = s;
-            }
-        }
-        s++;
-    }
-
-    return dict;
-}
+//dictionary* strsplit(char *str, char sep)
+//{
+//    dictionary* dict = dictionary_new(0);
+//    if (dict == NULL) 
+//        return NULL;
+//
+//    char *begin = NULL;
+//    char *s = str;
+//    int len = strlen(str);
+//    while (len) {
+//        if (*s == ',' || *s == ' ') {
+//            if (begin != NULL) {
+//                dictionary_set();
+//                begin = NULL;
+//            }
+//        } else { 
+//            if (begin == NULL) {
+//                begin = s;
+//            }
+//        }
+//        s++;
+//    }
+//
+//    return dict;
+//}
 

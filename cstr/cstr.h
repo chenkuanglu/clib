@@ -82,8 +82,8 @@ extern void*        ahex2bin    (const char *hex);
 
 extern void         memswap     (void *out, const void *in, unsigned len, unsigned section_size);
 
-extern dictionary*  strsplit    (char *str);
-extern dictionary*  strunsplit  (char *buf, unsigned size, dictionary* dict, char sep);
+//extern dictionary*  strsplit    (char *str);
+//extern dictionary*  strunsplit  (char *buf, unsigned size, dictionary* dict, char sep);
 
 #endif
 

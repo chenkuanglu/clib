@@ -100,36 +100,36 @@ typedef struct {
 
 #define THRQ_ELM_DATA(elm, type)        ( *((type *)((elm)->data)) )
 
-extern int thrq_init            (thrq_cb_t *thrq);
-extern void thrq_clean          (thrq_cb_t *thrq);
+extern int          thrq_init           (thrq_cb_t *thrq);
+extern void         thrq_clean          (thrq_cb_t *thrq);
 
-extern void thrq_set_clean      (thrq_cb_t *thrq, thrq_clean_data_t clean_data);
-extern void thrq_set_copy       (thrq_cb_t *thrq, thrq_copy_data_t copy_data);
-extern void thrq_set_compare    (thrq_cb_t *thrq, thrq_cmp_data_t compare_data);
-extern void thrq_set_maxsize    (thrq_cb_t *thrq, int max_size);
+extern void         thrq_set_clean      (thrq_cb_t *thrq, thrq_clean_data_t clean_data);
+extern void         thrq_set_copy       (thrq_cb_t *thrq, thrq_copy_data_t copy_data);
+extern void         thrq_set_compare    (thrq_cb_t *thrq, thrq_cmp_data_t compare_data);
+extern void         thrq_set_maxsize    (thrq_cb_t *thrq, int max_size);
 
-extern int thrq_empty           (thrq_cb_t *thrq);
-extern int thrq_count           (thrq_cb_t *thrq);
+extern int          thrq_empty          (thrq_cb_t *thrq);
+extern int          thrq_count          (thrq_cb_t *thrq);
 
-extern thrq_elm_t* thrq_first   (thrq_cb_t *thrq);
-extern thrq_elm_t* thrq_last    (thrq_cb_t *thrq);
+extern thrq_elm_t*  thrq_first          (thrq_cb_t *thrq);
+extern thrq_elm_t*  thrq_last           (thrq_cb_t *thrq);
 
-extern thrq_cb_t* thrq_create   (thrq_cb_t **thrq);
-extern void thrq_destroy        (thrq_cb_t *thrq);
+extern thrq_cb_t*   thrq_create         (thrq_cb_t **thrq);
+extern void         thrq_destroy        (thrq_cb_t *thrq);
 
-extern int thrq_insert_head     (thrq_cb_t *thrq, void *data, int len);
-extern int thrq_insert_tail     (thrq_cb_t *thrq, void *data, int len);
+extern int          thrq_insert_head    (thrq_cb_t *thrq, void *data, int len);
+extern int          thrq_insert_tail    (thrq_cb_t *thrq, void *data, int len);
 
-extern int thrq_insert_after    (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
-extern int thrq_insert_before   (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
+extern int          thrq_insert_after   (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
+extern int          thrq_insert_before  (thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len);
 
-extern int thrq_remove          (thrq_cb_t *thrq, thrq_elm_t *elm);
-extern int thrq_concat          (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
+extern int          thrq_remove         (thrq_cb_t *thrq, thrq_elm_t *elm);
+extern int          thrq_concat         (thrq_cb_t *thrq1, thrq_cb_t *thrq2);
 
-extern int thrq_send            (thrq_cb_t *thrq, void *data, int len);
-extern int thrq_receive         (thrq_cb_t *thrq, void *buf, int max_size, double timeout);
+extern int          thrq_send           (thrq_cb_t *thrq, void *data, int len);
+extern int          thrq_receive        (thrq_cb_t *thrq, void *buf, int max_size, double timeout);
 
-extern thrq_elm_t* thrq_find    (thrq_cb_t *thrq, void *data, int len);
+extern thrq_elm_t*  thrq_find           (thrq_cb_t *thrq, void *data, int len);
 
 /* thread safe */
 #define thrq_begin(thrq, data, len)     thrq_first(thrq)

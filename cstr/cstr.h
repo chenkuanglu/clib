@@ -68,21 +68,22 @@
 #define CCL_GRAY_DARK                   CSIB MAKE_CSTR(SGR_GRAY_DARK) CSIE
 #define CCL_END                         CSIB MAKE_CSTR(SGR_INIT) CSIE
 
-extern int      printfd     (const char *format, ...);
-extern int      vprintfd    (const char *format, va_list param);
+extern int          printfd     (const char *format, ...);
+extern int          vprintfd    (const char *format, va_list param);
 
-extern char*    strlwr      (char *out, const char *in, unsigned size);
-extern char*    strupr      (char *out, const char *in, unsigned size);
+extern char*        strlwr      (char *out, const char *in, unsigned size);
+extern char*        strupr      (char *out, const char *in, unsigned size);
 
-extern int      bin2hex     (char *hex, const void *bin, unsigned len);
-extern char*    abin2hex    (const void *bin, unsigned len);
+extern int          bin2hex     (char *hex, const void *bin, unsigned len);
+extern char*        abin2hex    (const void *bin, unsigned len);
 
-extern void     hex2bin     (void *bin, const char *hex, unsigned len);
-extern void*    ahex2bin    (const char *hex);
+extern void         hex2bin     (void *bin, const char *hex, unsigned len);
+extern void*        ahex2bin    (const char *hex);
 
-extern void     memswap     (void *out, const void *in, unsigned len, unsigned section_size);
+extern void         memswap     (void *out, const void *in, unsigned len, unsigned section_size);
 
-// split un-split
+extern dictionary*  strsplit    (char *str);
+extern dictionary*  strunsplit  (char *buf, unsigned size, dictionary* dict, char sep);
 
 #endif
 

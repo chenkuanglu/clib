@@ -10,22 +10,18 @@
 #include "thr_queue.h"
 
 typedef struct {
-    long    name;
-    long    id;
-    long    num;
-} argparser_args_t;
-
-typedef struct {
-    thrq_cb_t name_tbl;
+    int         argc;
+    char**      argv;
+    thrq_cb_t*  arg_names;
 } argparser_t;
 
-typedef int (*parse_func_t)(long id, char **param);
+typedef int (*parse_callback_t)(long id, char **param);
 
-extern argparser_t* argparser_new       (void);
-extern void         argparser_delete    (argparser_t*);
+extern argparser_t* argparser_new       (int argc, char **argv);
+extern void         argparser_delete    (argparser_t* parser);
 
 extern void         argparser_add       (argparser_t *parser, const char* arg_name, long arg_id, int param_num);
-extern void         argparser_parse     (argparser_t *parser, parse_func_t parse);
+extern int          argparser_parse     (argparser_t *parser, parse_callback_t parse_proc);
 
 #endif
 

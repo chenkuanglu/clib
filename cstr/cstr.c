@@ -11,9 +11,11 @@
  * @param   void
  * @return  number of char printed
  *
+ * @caller  vprintfd
+ *
  * internal function
  **/
-static int __print_date(void)
+static int printd(void)
 {
     struct tm ltm; 
     time_t now = time(NULL); 
@@ -34,8 +36,9 @@ static int __print_date(void)
 int vprintfd(const char *format, va_list param)
 {
     static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
+
     pthread_mutex_lock(&mutex);             
-    int num = __print_date();
+    int num = printd();
     num += printf(" ");     
     num += vprintf(format, param);         
     pthread_mutex_unlock(&mutex);
@@ -52,18 +55,11 @@ int vprintfd(const char *format, va_list param)
  **/
 int printfd(const char *format, ...)
 {
-    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_lock(&mutex);               
-    int num = __print_date();
-    num += printf(" "); 
-    
     va_list arg;
     va_start(arg, format);    
-    num += vprintf(format, arg);  
+    int num = vprintfd(format, arg);  
     va_end(arg); 
-          
-    pthread_mutex_unlock(&mutex);
-    
+
     return num;
 }
 

@@ -98,7 +98,7 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
                     printfd(CCL_RED "argparser: Fail to parse '%s', Short of parameter\n" CCL_END, *v);
                     return -1;
                 }
-                if (arg->n > 0)
+                if (c > 1)
                     parse_proc(arg->id, v+1);
                 else
                     parse_proc(arg->id, NULL);
@@ -108,8 +108,8 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
             }
         }
         if (found != 0) {
-            printfd(CCL_RED "argparser: Fail to parse '%s', Invalid argument\n" CCL_END, *v);
-            return -1;
+            c -= 1;
+            v += 1;
         }
     }
 

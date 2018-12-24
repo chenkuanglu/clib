@@ -15,7 +15,7 @@ typedef struct {
     thrq_cb_t*  arg_names;
 } argparser_t;
 
-typedef int (*parse_callback_t)(long id, char **param);
+typedef int (*parse_callback_t)(long id, char **param, int num);
 
 extern argparser_t* argparser_new       (int argc, char **argv);
 extern void         argparser_delete    (argparser_t* parser);

@@ -1,7 +1,7 @@
 #include "argparser.h"
 #include "cstr.h"
 
-static int cmdline_proc(long id, char **param)
+static int cmdline_proc(long id, char **param, int num)
 {
     switch (id) {
     case 'o':
@@ -26,6 +26,7 @@ static int cmdline_proc(long id, char **param)
         printfd(CCL_YELLOW "unknown arg id %d\n" CCL_END, id);
         break;
     }
+    (void)num;
 
     return 0;
 }

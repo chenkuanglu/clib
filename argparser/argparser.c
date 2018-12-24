@@ -99,9 +99,9 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
                     return -1;
                 }
                 if (c > 1)
-                    parse_proc(arg->id, v+1);
+                    parse_proc(arg->id, v+1, arg->n);   /* number of arg may be more than 'arg->n' */
                 else
-                    parse_proc(arg->id, NULL);
+                    parse_proc(arg->id, NULL, 0);
                 c -= arg->n + 1;
                 v += arg->n + 1;
                 break;

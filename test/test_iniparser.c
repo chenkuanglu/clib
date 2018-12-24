@@ -16,6 +16,7 @@ int main(void)
         printfd(CCL_RED "xconfig: fail to load file '%s'\n" CCL_END, filename);
         return -1;
     }
+    printfd(CCL_YELLOW "xconfig: load file '%s'\n" CCL_END, filename);
     
     printfd(CCL_CYAN "baudrate = %d\n" CCL_END, config->baudrate);
     printfd(CCL_CYAN "data_bits = %d\n" CCL_END, config->data_bits);

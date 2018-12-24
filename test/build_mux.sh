@@ -1,2 +1,2 @@
-#gcc -o test test.c mux.c -lpthread
-gcc -o test.out test.c -L. -lmux -lpthread
+gcc -o mux.out test_mux.c -I../include -L../lib_build -lmux -lpthread
+

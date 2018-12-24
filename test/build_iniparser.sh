@@ -1,1 +1,1 @@
-gcc -o test.out test.c xconfig.c dictionary.c iniparser.c ../cstr/cstr.c -lm -lpthread -I. -I../cstr
+gcc -o iniparser.out test_iniparser.c xconfig.c -I../include -L../lib_build -liniparser -ldict -lthrq -lcstr -lmux -lpthread -lm

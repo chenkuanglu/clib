@@ -1,1 +1,2 @@
-gcc -Wall -o test.out test.c cstr.c -I.
+gcc -Wall -o cstr.out test_cstr.c -I../include -L../lib_build -lcstr -lmux -lpthread -lm
+

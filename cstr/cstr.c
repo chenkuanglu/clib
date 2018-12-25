@@ -28,7 +28,7 @@ static int printd(void)
 
 /**
  * @brief   print format string with date([2018-01-01 23:59:59]) prefix
- * @param   format      hex to convert
+ * @param   format      format string
  *          param       parameter list
  *
  * @return  number of char printed
@@ -48,7 +48,7 @@ int vprintfd(const char *format, va_list param)
 
 /**
  * @brief   print format string with date([2018-01-01 23:59:59]) prefix
- * @param   format      hex to convert
+ * @param   format      format string
  *          ...         variable parameters
  *
  * @return  number of char printed

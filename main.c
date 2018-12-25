@@ -1,7 +1,6 @@
 // xconfig & iniparser test
 
 #include "xconfig.h"
-#include <curses.h>
 
 int main(void)
 {
@@ -34,25 +33,6 @@ int main(void)
     printfd(CCL_CYAN "stop_bits = %d\n" CCL_END, config->stop_bits);
     
     xconfig_delete(config);
-
-    initscr();
-    WINDOW *mywin = newwin(10, 10, 2, 2);
-    //box(mywin, ACS_VLINE, ACS_HLINE);
-    box(mywin, 0, 0);
-    //move(LINES/2 + 1, COLS/2 - sizeof("hello, world!")/2);
-    move(4, 4);
-    waddstr(mywin, "hello, world!");
-
-    hline(0, 20);
-    vline(0, 20);
-    wrefresh(mywin);
-    wrefresh(stdscr);
-    getch();
-
-    wclear(mywin);
-    delwin(mywin);
-    endwin();
-
     return 0;
 }
 

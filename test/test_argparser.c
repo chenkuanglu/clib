@@ -5,19 +5,19 @@ static int cmdline_proc(long id, char **param, int num)
 {
     switch (id) {
     case 'o':
-        printfd(CCL_YELLOW "arg = -%c, param = %s\n" CCL_END, (char)id, param[0]);
+        printfd(CCL_YELLOW "arg = -%c, 1st_param = %s, param num = %d\n" CCL_END, (char)id, param[0], num);
         break;
     case 'C':
-        printfd(CCL_YELLOW "arg = -%c, param = %s\n" CCL_END, (char)id, param[0]);
+        printfd(CCL_YELLOW "arg = -%c, 1st_param = %s, param num = %d\n" CCL_END, (char)id, param[0], num);
         break;
     case 'A':
-        printfd(CCL_YELLOW "arg = -%c\n" CCL_END, (char)id);
+        printfd(CCL_YELLOW "arg = -%c, param num = %d\n" CCL_END, (char)id);
         break;
     case 1001:
-        printfd(CCL_YELLOW "arg = %d, param = %s\n" CCL_END, id, param[0]);
+        printfd(CCL_YELLOW "arg = %d, 1st_param = %s, param num = %d\n" CCL_END, id, param[0], num);
         break;
     case 1002:
-        printfd(CCL_YELLOW "arg = %d: \n" CCL_END, id);
+        printfd(CCL_YELLOW "arg = %d: , param num = %d\n" CCL_END, id, num);
         printfd(CCL_YELLOW "\tparam[0] = %s\n" CCL_END, param[0]);
         printfd(CCL_YELLOW "\tparam[1] = %s\n" CCL_END, param[1]);
         printfd(CCL_YELLOW "\tparam[2] = %s\n" CCL_END, param[2]);
@@ -26,7 +26,6 @@ static int cmdline_proc(long id, char **param, int num)
         printfd(CCL_YELLOW "unknown arg id %d\n" CCL_END, id);
         break;
     }
-    (void)num;
 
     return 0;
 }

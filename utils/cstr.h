@@ -14,6 +14,10 @@
 #include <string.h>
 #include <pthread.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* make string */
 #define _MAKE_CSTR(s)                   #s
 #define MAKE_CSTR(s)                    _MAKE_CSTR(s)
@@ -85,5 +89,9 @@ extern void         memswap     (void *out, const void *in, unsigned len, unsign
 //extern dictionary*  strsplit    (char *str);
 //extern dictionary*  strunsplit  (char *buf, unsigned size, dictionary* dict, char sep);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 

@@ -5,6 +5,10 @@
  **/
 
 #include "cstr.h"
+ 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief   print format date like [2018-01-01 23:59:59]
@@ -276,4 +280,8 @@ void memswap(void *out, const void *in, unsigned len, unsigned section_size)
 //
 //    return dict;
 //}
+
+#ifdef __cplusplus
+}
+#endif
 

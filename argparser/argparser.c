@@ -7,6 +7,10 @@
 #include "argparser.h"
 #include "cstr.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_ARG_NAME    64
 
 typedef struct {
@@ -18,8 +22,8 @@ typedef struct {
 static int argcmp(const void* left, const void* right, size_t len)
 {
     if (left != NULL && right != NULL && len > 0) {
-        const argparser_args_t *l = left;
-        const argparser_args_t *r = right;
+        const argparser_args_t *l = (const argparser_args_t *)left;
+        const argparser_args_t *r = (const argparser_args_t *)right;
         if (strcmp(l->name, r->name) == 0)  {
             printfd(CCL_RED "argparser: Cannot add arg '%s', multiple arg name\n" CCL_END);
             return 0;
@@ -130,4 +134,8 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
 
     return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 

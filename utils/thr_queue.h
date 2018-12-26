@@ -1,20 +1,20 @@
-#ifndef __THR_QUEUE__
-#define __THR_QUEUE__
-
 /**
  * @file    thr_queue.h
  * @author  ln
  * @brief   thread safe msg queue
  **/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef __THR_QUEUE__
+#define __THR_QUEUE__
 
 #include <errno.h>
 #include <sys/queue.h>
 #include <pthread.h>
 #include "mux.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * declare user data type with list head struct: 

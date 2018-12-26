@@ -1,17 +1,17 @@
-#ifndef __THR_MUX__
-#define __THR_MUX__
-
 /**
  * @file    mux.h
  * @author  ln
  * @brief   mutex, inner process & recursive
  **/
 
+#ifndef __THR_MUX__
+#define __THR_MUX__
+
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <pthread.h>
 
 typedef struct {
     pthread_mutex_t     mux;

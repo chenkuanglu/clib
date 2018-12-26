@@ -1,2 +1,2 @@
-gcc -o mux.out test_mux.c -I../include -L../lib_build -lmux -lpthread
+gcc -o mux.out test_mux.c -I../cstr -I../thr_queue -I../iniparser -I../mux -L../lib_build -lmux -lpthread
 

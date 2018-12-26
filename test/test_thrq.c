@@ -33,6 +33,7 @@ void* fn(void *arg)
 
 int elmcmp(const void *e1, const void *e2, size_t size)
 {
+    (void)size;
     return ((*((int *)e1)) - (*((int *)e2)));
 }
 
@@ -41,7 +42,7 @@ int main()
     int fdata, num = 1;
 
     // create & init
-    if (thrq_create(&myq) < 0) 
+    if (thrq_create(&myq) == 0) 
         printf("create & init queue: error\n");
     else
         printf("create & init queue: ok\n");

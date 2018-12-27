@@ -1,1 +1,1 @@
-gcc -o serdbg.out main.c xconfig.c ../../utils/iniparser.c ../../utils/argparser.c -I../../utils -L../../utils -lcurses -lutils -lpthread -lm
+gcc -o serdbg.out dbg.c iniparser/xconfig.c argparser/argparser.c -I./utils -I./iniparser -I./argparser -L./utils -lcurses -lutils -lpthread -lm

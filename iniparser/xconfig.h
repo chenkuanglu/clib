@@ -21,9 +21,10 @@
 /* [serial] */
 #define INI_SECTION_SERIAL          serial
 
+#define INI_KEY_DEV_NAME            dev_name
 #define INI_KEY_BAUDRATE         	baudrate
 #define INI_KEY_DATA_BITS           data_bits
-#define INI_KEY_CHECK_FLAG          check_flag
+#define INI_KEY_PARITY              parity
 #define INI_KEY_STOP_BITS           stop_bits
 
 /* [benchmark] */
@@ -32,23 +33,25 @@
 #define INI_KEY_BENCHMARK_EN      	benchmark_en
 
 /* make/declare xconfig MACRO */
+#define CFG_DEV_NAME                MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_DEV_NAME)
 #define CFG_BAUDRATE                MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_BAUDRATE)
 #define CFG_DATA_BITS               MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_DATA_BITS)
-#define CFG_CHECK_FLAG              MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_CHECK_FLAG)
+#define CFG_PARITY                  MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_PARITY)
 #define CFG_STOP_BITS               MAKE_DICT_KEY(INI_SECTION_SERIAL, INI_KEY_STOP_BITS)
 
 #define CFG_BENCHMARK_EN            MAKE_DICT_KEY(INI_SECTION_BENCHMARK, INI_KEY_BENCHMARK_EN)
 
 /* default config value if ini not config */
+#define DEV_NAME_DEFAULT            "/dev/ttyUSB0"
 #define BAUDRATE_DEFAULT            115200
 #define DATA_BITS_DEFAULT           8
-#define CHECK_FLAG_DEFAULT          None
+#define PARITY_DEFAULT              None
 #define STOP_BITS_DEFAULT           1
 
 #define BENCHMARK_EN_DEFAULT        false
 
 
-/* serial check flag */
+/* serial parity */
 enum { None, Odd, Even };
 
 typedef struct {
@@ -56,9 +59,10 @@ typedef struct {
     dictionary *DICT_ENTRY;
 
     /* section [serial] */
+    const char* dev_name;
 	long        baudrate;
 	long        data_bits;
-	long        check_flag;
+	long        parity;
 	long        stop_bits;
 
     /* section [benchmark] */

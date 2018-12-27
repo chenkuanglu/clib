@@ -1,39 +1,46 @@
-// serial debugger 
+// debugger 
 
 #include "xconfig.h"
 #include <curses.h>
 
-int main(void)
+// type of main control block
+typedef struct {
+    char*           inifile;    // *.ini file
+    xconfig_t*      config;     // config info
+} dbg_cb_t;
+
+int dbg_run(dbg_cb_t *dbg)
 {
-    const char *filename = "config.ini";
-    xconfig_t *config = xconfig_new();
-    if (config == NULL) {
-        printfd(CCL_RED "xconfig: fail to create\n" CCL_END);
+    (void)dbg;
+}
+
+int main(int argc, char **argv)
+{
+    printfd(CCL_GREEN "Debugger For Serial\n" CCL_END);
+    printfd(CCL_GREEN "Version 0.0.1\n" CCL_END);
+
+    // Init main control block
+    dbg_cb_t *dbg = (dbg_cb_t *)malloc(sizeof(dbg_cb_t));
+    if (dbg == NULL) {
+        printfd(CCL_RED "Fail to malloc 'dbg_cb_t'\n" CCL_END);
+        return -1;
+    }
+    dbg->inifile = strdup("dbg.ini");
+
+    // Open & parser ini file
+    dbg->config = xconfig_new();
+    if (dbg->config == NULL) {
+        printfd(CCL_RED "Fail to new 'xconfig_t'\n" CCL_END);
+        return -1;
+    }
+    printfd("\n");
+    printfd(CCL_CYAN "Load ini file '%s'\n" CCL_END, dbg->inifile);
+    if (xconfig_load(dbg->config, dbg->inifile) < 0) {
+        printfd(CCL_RED "Fail to load ini file '%s'\n" CCL_END, dbg->inifile);
         return -1;
     }
     
-    int res = xconfig_load(config, filename);
-    if (res < 0) {
-        printfd(CCL_RED "xconfig: fail to load file '%s'\n" CCL_END, filename);
-        return -1;
-    }
-    printfd(CCL_YELLOW "xconfig: load file '%s'\n" CCL_END, filename);
-    
-    printfd(CCL_CYAN "baudrate = %d\n" CCL_END, config->baudrate);
-    printfd(CCL_CYAN "data_bits = %d\n" CCL_END, config->data_bits);
-    char *s = NULL;
-    if (config->check_flag == None) 
-        s = "None";
-    else if (config->check_flag == Odd) 
-        s = "Odd";
-    else if (config->check_flag == Even)
-        s = "Even";
-    else 
-        s = "Unkown";
-    printfd(CCL_CYAN "check_flag = %s\n" CCL_END, s);
-    printfd(CCL_CYAN "stop_bits = %d\n" CCL_END, config->stop_bits);
-    
-    xconfig_delete(config);
+    dbg_run(dbg);
 
     initscr();
     WINDOW *mywin = newwin(10, 10, 2, 2);
@@ -52,6 +59,8 @@ int main(void)
     wclear(mywin);
     delwin(mywin);
     endwin();
+    
+    xconfig_delete(dbg->config);
 
     return 0;
 }

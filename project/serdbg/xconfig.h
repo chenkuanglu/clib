@@ -4,8 +4,8 @@
  * @brief   config template
  **/
 
-#ifndef __C_XCONFIG_H__
-#define __C_XCONFIG_H__
+#ifndef __XCONFIG_H__
+#define __XCONFIG_H__
 
 #include "cstr.h"
 #include "dictionary.h"
@@ -48,7 +48,7 @@
 #define BENCHMARK_EN_DEFAULT        false
 
 
-/* check flag */
+/* serial check flag */
 enum { None, Odd, Even };
 
 typedef struct {

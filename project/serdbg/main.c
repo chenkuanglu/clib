@@ -1,4 +1,4 @@
-// xconfig & iniparser test
+// serial debugger 
 
 #include "xconfig.h"
 #include <curses.h>

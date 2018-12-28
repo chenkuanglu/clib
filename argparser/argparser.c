@@ -103,13 +103,22 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
             arg = (argparser_args_t *)var->data;
             if ((found = strcmp(*v, arg->name)) == 0) { 
                 if (c - 1 < arg->n) {
+                    /* process the previous arg */
+                    if (prev_v != NULL) {
+                        if (parse_proc(prev_i, prev_v+1, prev_c) < 0) {     /* number of arg may be more than 'arg->n' */
+                            prev_v = NULL;
+                        }
+                    }
                     printfd(CCL_RED "argparser: Fail to parse '%s', Short of parameter\n" CCL_END, *v);
                     return -1;
                 }
 
                 /* process the previous arg */
                 if (prev_v != NULL) {
-                    parse_proc(prev_i, prev_v+1, prev_c);   /* number of arg may be more than 'arg->n' */
+                    if (parse_proc(prev_i, prev_v+1, prev_c) < 0) {         /* number of arg may be more than 'arg->n' */
+                        prev_v = NULL;
+                        return 0;                                           /* user stop parse */
+                    }
                 }
 
                 prev_v = v;
@@ -129,7 +138,10 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
     }
 
     if (prev_v != NULL) {
-        parse_proc(prev_i, prev_v+1, prev_c);
+        if (prev_c == 0)
+            parse_proc(prev_i, NULL, prev_c);
+        else
+            parse_proc(prev_i, prev_v+1, prev_c);
     }
 
     return 0;

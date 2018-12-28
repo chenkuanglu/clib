@@ -59,14 +59,14 @@ typedef struct {
     dictionary *DICT_ENTRY;
 
     /* section [serial] */
-    const char* dev_name;
-	long        baudrate;
-	long        data_bits;
-	long        parity;
-	long        stop_bits;
+    char*   dev_name;
+	long    baudrate;
+	long    data_bits;
+	long    parity;
+	long    stop_bits;
 
     /* section [benchmark] */
-	bool        benchmark_en;
+	bool    benchmark_en;
 } xconfig_t;
 
 extern xconfig_t*   xconfig_new     (void);

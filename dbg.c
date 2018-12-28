@@ -5,11 +5,12 @@
 #include "xconfig.h"
 #include "argparser.h"
 
+#define DBG_VERSION     "0.0.1"
+
 // type of main control block
 typedef struct {
     char*           inifile;    // *.ini file
-    xconfig_t*      config;     // config info
-    argparser_t*    cmdline;    // cmdline arguments
+    xconfig_t*      config;     // config info come from ini & cmdline
     int             run_mode;
 } dbg_cb_t;
 
@@ -19,34 +20,64 @@ enum {
     RUN_MODE_VERSION,   // print version
 };
 
+// main control block
+dbg_cb_t *dbg = NULL;
+
+static int help(long id)
+{
+    switch (id) {
+        case 0:
+            printfd("help self\n");
+            break;
+        case 'v':
+            printfd("help v\n");
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
 static int cmdline_proc(long id, char **param, int num)
 {
-    (void)num;
+    if ((param) && (strcmp(param[0], "-h") == 0 || strcmp(param[0], "--help") == 0)) {
+        dbg->run_mode = RUN_MODE_HELP;
+        help(id);
+        return -1;  // stop parse
+    }
 
     switch (id) {
-    case 'h':
-        printfd("print help info...\n");
-        break;
-    case 'v':
-        printfd("print version info...\n");
-        break;
-    case 'd':
-        printfd("set serial device: %s\n", param[0]);
-        break;
-    case 1001:  // --baud
-        printfd("set baud: %s\n", param[0]);
-        break;
-    default:
-        printfd(CCL_YELLOW "unknown arg id %d\n" CCL_END, id);
-        break;
+        case 'h':
+            dbg->run_mode = RUN_MODE_HELP;
+            help(0);
+            break;
+        case 'v':
+            dbg->run_mode = RUN_MODE_VERSION;
+            printfd(CCL_GREEN "Debugger For Serial\n" CCL_END);
+            printfd(CCL_GREEN "Version %s\n" CCL_END, DBG_VERSION);
+            break;
+        case 'd':
+            free(dbg->config->dev_name);
+            dbg->config->dev_name = NULL;
+            dbg->config->dev_name = strdup(param[0]);
+            printfd(CCL_CYAN "Set serial device: '%s'\n" CCL_END, dbg->config->dev_name);
+            break;
+        case 1001:  // --baud
+            dbg->config->baudrate = strtol(param[0], NULL, 0);
+            printfd("set baud: %d\n", dbg->config->baudrate);
+            break;
+        default:
+            printfd(CCL_YELLOW "Unknown arg id %d\n" CCL_END, id);
+            break;
     }
 
     return 0;
 }
 
-static int dbg_run(dbg_cb_t *dbg)
+static int dbg_run(void)
 {
-    (void)dbg;
+    printfd(CCL_GREEN "Debugger For Serial\n" CCL_END);
+    printfd(CCL_GREEN "Version %s\n" CCL_END, DBG_VERSION);
 
     thrq_cb_t *myq = thrq_create(NULL);
     if (myq == NULL) {
@@ -69,16 +100,13 @@ static int dbg_run(dbg_cb_t *dbg)
 
 int main(int argc, char **argv)
 {
-    printfd(CCL_GREEN "Debugger For Serial\n" CCL_END);
-    printfd(CCL_GREEN "Version 0.0.1\n" CCL_END);
-
     // Init main control block
-    dbg_cb_t *dbg = (dbg_cb_t *)malloc(sizeof(dbg_cb_t));
+    dbg = (dbg_cb_t *)malloc(sizeof(dbg_cb_t));
     if (dbg == NULL) {
         printfd(CCL_RED "Fail to malloc 'dbg_cb_t'\n" CCL_END);
         return -1;
     }
-    dbg->inifile = strdup("dbg.ini");
+    dbg->inifile = strdup("./dbg.ini");
     dbg->run_mode = RUN_MODE_NORMAL;
 
     // Open & parse ini file
@@ -87,34 +115,51 @@ int main(int argc, char **argv)
         printfd(CCL_RED "Fail to new 'xconfig_t'\n" CCL_END);
         return -1;
     }
+#ifdef DEBUG
     printfd("\n");
     printfd(CCL_CYAN "Load ini file '%s'\n" CCL_END, dbg->inifile);
+#endif
     if (xconfig_load(dbg->config, dbg->inifile) < 0) {
         printfd(CCL_RED "Fail to load ini file '%s'\n" CCL_END, dbg->inifile);
         return -1;
     }
     
     // Parse command line 
-    dbg->cmdline = argparser_new(argc, argv);
-    if (dbg->cmdline == NULL) {
+    argparser_t* cmdline = argparser_new(argc, argv);
+    if (cmdline == NULL) {
         printfd(CCL_RED "Fail to new 'argparser_t'\n" CCL_END);
+        return -1;
     }
-    argparser_add(dbg->cmdline, "-h", 'h', 0);
-    argparser_add(dbg->cmdline, "--help", 'h', 0);
-    argparser_add(dbg->cmdline, "-v", 'v', 0);
-    argparser_add(dbg->cmdline, "-d", 'd', 1);
-    argparser_add(dbg->cmdline, "--baud", 1001, 1);
-    if (argparser_parse(dbg->cmdline, cmdline_proc)) {
+    argparser_add(cmdline, "-h", 'h', 0);
+    argparser_add(cmdline, "--help", 'h', 0);
+    argparser_add(cmdline, "-v", 'v', 0);
+    argparser_add(cmdline, "-d", 'd', 1);
+    argparser_add(cmdline, "--baud", 1001, 1);
+    if (argparser_parse(cmdline, cmdline_proc)) {
         printfd(CCL_RED "Fail to process command line\n" CCL_END);
+        return -1;
     }
 
-    // Run the debugger 
-    dbg_run(dbg);
+    switch (dbg->run_mode) {
+        case RUN_MODE_NORMAL:
+            dbg_run();          // Run the debugger, main thread
+            break;
+
+        case RUN_MODE_HELP:
+        case RUN_MODE_VERSION:
+        default:
+#ifdef DEBUG
+            printfd("\n");
+            printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
+#endif
+            break;
+    }
 
     // Release resources
+    argparser_delete(cmdline);
     free(dbg->inifile);
     xconfig_delete(dbg->config);
-    argparser_delete(dbg->cmdline);
+    free(dbg);
 
     return 0;
 }

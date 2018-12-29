@@ -40,7 +40,7 @@ static int help(long id)
 
 static int cmdline_proc(long id, char **param, int num)
 {
-    if ((param) && (strcmp(param[0], "-h") == 0 || strcmp(param[0], "--help") == 0)) {
+    if ((param) && (num > 0) && (strcmp(param[0], "--help") == 0)) {
         dbg->run_mode = RUN_MODE_HELP;
         help(id);
         return -1;  // stop parse
@@ -131,7 +131,6 @@ int main(int argc, char **argv)
         return -1;
     }
     argparser_add(cmdline, "-h", 'h', 0);
-    argparser_add(cmdline, "--help", 'h', 0);
     argparser_add(cmdline, "-v", 'v', 0);
     argparser_add(cmdline, "-d", 'd', 1);
     argparser_add(cmdline, "--baud", 1001, 1);

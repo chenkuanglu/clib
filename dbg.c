@@ -20,6 +20,13 @@ enum {
     RUN_MODE_VERSION,   // print version
 };
 
+char help_tbl[] = "\
+Usage: serdbg [-h] [-v] [-d <file>] [--help]\n\n\
+    -h                  Display help information\n\
+    -v                  Display version\n\
+    -d <file>           Set serial device\n\
+    --baud <integer>    Set baudrate\n";
+
 // main control block
 dbg_cb_t *dbg = NULL;
 
@@ -27,11 +34,29 @@ static int help(long id)
 {
     switch (id) {
         case 0:
-            printfd("help self\n");
+            printf("%s\n", help_tbl);
             break;
+
+        case 'h':
+            printfd("Display this information\n");
+            break;
+
         case 'v':
-            printfd("help v\n");
+            printfd("Display version\n");
             break;
+
+        case 'd':
+            printf("\
+Usage: serdbg -d <file>\n\
+    Set serial device\n");
+            break;
+
+        case 1001:
+            printf("\
+Usage: serdbg --baud <integer>\n\
+    Set baudrate\n");
+            break;
+
         default:
             break;
     }
@@ -64,7 +89,7 @@ static int cmdline_proc(long id, char **param, int num)
             break;
         case 1001:  // --baud
             dbg->config->baudrate = strtol(param[0], NULL, 0);
-            printfd("set baud: %d\n", dbg->config->baudrate);
+            printfd(CCL_CYAN "Set baudrate: %d\n" CCL_END, dbg->config->baudrate);
             break;
         default:
             printfd(CCL_YELLOW "Unknown arg id %d\n" CCL_END, id);

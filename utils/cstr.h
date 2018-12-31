@@ -42,7 +42,7 @@ extern "C" {
 #define SGR_BLUE                        4
 #define SGR_PURPLE                      5
 #define SGR_CYAN                        6
-#define SGR_WHILE                       7
+#define SGR_WHITE                       7
 
 #define SGR_INIT                        0
 #define SGR_HIGHLIGHT                   1
@@ -66,9 +66,9 @@ extern "C" {
 #define CCL_BLUE                        CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_BLUE)) CSIE
 #define CCL_PURPLE                      CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_PURPLE)) CSIE
 #define CCL_CYAN                        CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_CYAN)) CSIE
-#define CCL_WHILE                       CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHILE)) CSIE
-#define CCL_WHILE_HL                    CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHILE)) ";" \
-                                             MAKE_CSTR(SGR_HIGHLIGHT) CSIE
+#define CCL_WHITE                       CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHITE)) CSIE
+#define CCL_WHITE_HL                    CSIB MAKE_CSTR(CONCAT_STRING(SGR_FOREGROUND,SGR_WHITE)) ";" \
+                                        MAKE_CSTR(SGR_HIGHLIGHT) CSIE
 #define CCL_GRAY_DARK                   CSIB MAKE_CSTR(SGR_GRAY_DARK) CSIE
 #define CCL_END                         CSIB MAKE_CSTR(SGR_INIT) CSIE
 

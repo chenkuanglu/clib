@@ -53,7 +53,7 @@ void signal_handler(int signal)
     switch (signal) {
         case SIGINT:
             printf("\n");
-            printfd(CCL_YELLOW "catch signal 'CTRL-C'\n" CCL_END);
+            printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
             exit(0);
             break;
         default:
@@ -106,11 +106,15 @@ static int cmdline_proc(long id, char **param, int num)
             free(dbg->config->dev_name);
             dbg->config->dev_name = NULL;
             dbg->config->dev_name = strdup(param[0]);
+#ifdef DEBUG
             printfd(CCL_CYAN "Set serial device: '%s'\n" CCL_END, dbg->config->dev_name);
+#endif
             break;
         case 1001:  // --baud
             dbg->config->baudrate = strtol(param[0], NULL, 0);
+#ifdef DEBUG
             printfd(CCL_CYAN "Set baudrate: %d\n" CCL_END, dbg->config->baudrate);
+#endif
             break;
         default:
             printfd(CCL_YELLOW "Unknown arg id %d\n" CCL_END, id);
@@ -120,8 +124,80 @@ static int cmdline_proc(long id, char **param, int num)
     return 0;
 }
 
+void draw(void)
+{
+    initscr();
+    cbreak();
+    noecho();
+    nl();
+
+    char msgbx[] = "message box";
+    int y, x, height = 10, width = 30;
+    y = (LINES - height) / 2;
+    x = (COLS - width) / 2;
+
+    WINDOW *mywin = newwin(height, width, y, x);
+
+    wattron(mywin, A_REVERSE);
+    //box(mywin, ACS_VLINE, ACS_HLINE);
+    box(mywin, ' ', ' ');
+    wmove(mywin, 0, (width-(int)strlen(msgbx)) / 2);
+    wprintw(mywin, "%s",msgbx);
+    wattroff(mywin, A_REVERSE);
+
+    wmove(mywin, 1, 1);
+    waddstr(mywin, "hello, world!");
+    wmove(mywin, 2, 1);
+    whline(mywin, 0, width-2);
+
+    wmove(mywin, 3, 1);
+    wrefresh(mywin);
+
+    keypad(mywin, TRUE);
+    int ch;
+    while ((ch = wgetch(mywin)) != '\n') {
+        switch (ch) {
+            case KEY_LEFT:
+                if (x) {
+                    redrawwin(stdscr);
+                    mvwin(mywin, y, --x);
+                    refresh();
+                }
+                break;
+            case KEY_RIGHT:
+                if (x+width < COLS) {
+                    redrawwin(stdscr);
+                    mvwin(mywin, y, ++x);
+                    refresh();
+                }
+                break;
+            case KEY_UP:
+                if (y) {
+                    redrawwin(stdscr);
+                    mvwin(mywin, --y, x);
+                    refresh();
+                }
+                break;
+            case KEY_DOWN:
+                if (y+height < LINES) {
+                    redrawwin(stdscr);
+                    mvwin(mywin, ++y, x);
+                    refresh();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    delwin(mywin);
+    endwin();
+}
+
 static int dbg_run(void)
 {
+    draw();
+
     printfd(CCL_GREEN "Serial Debugger Version %s\n" CCL_END, DBG_VERSION);
 
     thrq_cb_t *myq = thrq_create(NULL);
@@ -202,21 +278,3 @@ int main(int argc, char **argv)
     return 0;
 }
 
-
-//initscr();
-//WINDOW *mywin = newwin(10, 10, 2, 2);
-////box(mywin, ACS_VLINE, ACS_HLINE);
-//box(mywin, 0, 0);
-////move(LINES/2 + 1, COLS/2 - sizeof("hello, world!")/2);
-//move(4, 4);
-//waddstr(mywin, "hello, world!");
-
-//hline(0, 20);
-//vline(0, 20);
-//wrefresh(mywin);
-//wrefresh(stdscr);
-//getch();
-
-//wclear(mywin);
-//delwin(mywin);
-//endwin();

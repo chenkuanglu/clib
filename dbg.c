@@ -166,14 +166,14 @@ void draw(void)
                 break;
             case KEY_RIGHT:
                 if (x+width < COLS) {
-                    redrawwin(stdscr);
+                    wclear(stdscr);
                     mvwin(mywin, y, ++x);
                     refresh();
                 }
                 break;
             case KEY_UP:
                 if (y) {
-                    redrawwin(stdscr);
+                    touchwin(stdscr);
                     mvwin(mywin, --y, x);
                     refresh();
                 }

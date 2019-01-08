@@ -1,6 +1,8 @@
 // debugger 
 
+#ifdef USE_GUI
 #include <curses.h>
+#endif
 #include <signal.h>
 #include "thr_queue.h"
 #include "xconfig.h"
@@ -53,7 +55,7 @@ void signal_handler(int signal)
     switch (signal) {
         case SIGINT:
             printf("\n");
-            printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
+            printfd(CCL_YELLOW "Ctrl-C, Debugger exit.\n" CCL_END);
             exit(0);
             break;
         default:
@@ -124,6 +126,7 @@ static int cmdline_proc(long id, char **param, int num)
     return 0;
 }
 
+#ifdef USE_GUI
 void draw(void)
 {
     initscr();
@@ -193,10 +196,13 @@ void draw(void)
     delwin(mywin);
     endwin();
 }
+#endif
 
 static int dbg_run(void)
 {
+#ifdef USE_GUI
     draw();
+#endif
 
     printfd(CCL_GREEN "Serial Debugger Version %s\n" CCL_END, DBG_VERSION);
 
@@ -229,7 +235,7 @@ int main(int argc, char **argv)
         printfd(CCL_RED "Fail to malloc 'dbg_cb_t'\n" CCL_END);
         return -1;
     }
-    dbg->inifile = strdup("./sdbg.ini");
+    dbg->inifile = strdup("./dbg.ini");
     dbg->run_mode = RUN_MODE_NORMAL;
 
     // Open & parse ini file
@@ -269,11 +275,12 @@ int main(int argc, char **argv)
         case RUN_MODE_HELP:
         case RUN_MODE_VERSION:
         default:
-#ifdef DEBUG
-            printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
-#endif
             break;
     }
+
+#ifdef DEBUG
+    printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
+#endif
 
     return 0;
 }

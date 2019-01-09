@@ -11,63 +11,6 @@ extern "C" {
 #endif
 
 /**
- * @brief   print format date like [2018-01-01 23:59:59]
- * @param   void
- * @return  number of char printed
- *
- * @caller  vprintfd
- *
- * internal function
- **/
-static int printd(void)
-{
-    struct tm ltm; 
-    time_t now = time(NULL); 
-    localtime_r(&now, &ltm);
-    int num = printf("[%04d-%02d-%02d %02d:%02d:%02d]",
-                     ltm.tm_year + 1900, ltm.tm_mon + 1, ltm.tm_mday,
-                     ltm.tm_hour, ltm.tm_min, ltm.tm_sec);                                  
-    return num;
-}
-
-/**
- * @brief   print format string with date([2018-01-01 23:59:59]) prefix
- * @param   format      format string
- *          param       parameter list
- *
- * @return  number of char printed
- **/
-int vprintfd(const char *format, va_list param)
-{
-    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
-
-    pthread_mutex_lock(&mutex);             
-    int num = printd();
-    num += printf(" ");     
-    num += vprintf(format, param);         
-    pthread_mutex_unlock(&mutex);
-    
-    return num;
-}
-
-/**
- * @brief   print format string with date([2018-01-01 23:59:59]) prefix
- * @param   format      format string
- *          ...         variable parameters
- *
- * @return  number of char printed
- **/
-int printfd(const char *format, ...)
-{
-    va_list arg;
-    va_start(arg, format);    
-    int num = vprintfd(format, arg);  
-    va_end(arg); 
-
-    return num;
-}
-
-/**
  * @brief   Convert a string to lowercase
  * @param   in      String to convert
  *          out     Output buffer

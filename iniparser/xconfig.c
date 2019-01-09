@@ -5,6 +5,7 @@
  **/
 
 #include "xconfig.h"
+#include "log.h"
 
 int iniparser_error_callback(const char *format, ...)
 {
@@ -38,7 +39,7 @@ static xconfig_t* xconfig_init(xconfig_t* xconfig)
         xconfig->stop_bits      = STOP_BITS_DEFAULT;
         xconfig->benchmark_en   = BENCHMARK_EN_DEFAULT;
     }
-    iniparser_set_error_callback(iniparser_error_callback);
+    iniparser_set_error_callback(loge);
     return xconfig;
 }
 
@@ -68,7 +69,7 @@ int xconfig_load(xconfig_t *xconfig, const char *inifile)
         xconfig->dev_name = strdup(iniparser_getstring(xconfig->DICT_ENTRY, CFG_DEV_NAME, DEV_NAME_DEFAULT));
         xconfig->baudrate = iniparser_getlongint(xconfig->DICT_ENTRY, CFG_BAUDRATE, BAUDRATE_DEFAULT);
         xconfig->data_bits = iniparser_getlongint(xconfig->DICT_ENTRY, CFG_DATA_BITS, DATA_BITS_DEFAULT);
-        const char *pty = iniparser_getstring(xconfig->DICT_ENTRY, CFG_PARITY, "unkown");
+        const char *pty = iniparser_getstring(xconfig->DICT_ENTRY, CFG_PARITY, MAKE_CSTR(PARITY_DEFAULT));
         if (strcmp(pty, "None") == 0) {
             xconfig->parity = None;
         } else if (strcmp(pty, "Odd") == 0) {
@@ -77,7 +78,7 @@ int xconfig_load(xconfig_t *xconfig, const char *inifile)
             xconfig->parity = Even;
         } else {
             xconfig->parity = PARITY_DEFAULT;
-            printfd(CCL_YELLOW "xconfig: Unkown serial parity config '%s'\n" CCL_END, pty);
+            printfd(CCL_YELLOW "xconfig: Unknown serial parity config '%s'\n" CCL_END, pty);
         }
         xconfig->stop_bits = iniparser_getlongint(xconfig->DICT_ENTRY, CFG_STOP_BITS, STOP_BITS_DEFAULT);
 #ifdef DEBUG

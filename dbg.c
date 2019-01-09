@@ -248,8 +248,8 @@ int main(int argc, char **argv)
     printfd(CCL_CYAN "Load ini file '%s'\n" CCL_END, dbg->inifile);
 #endif
     if (xconfig_load(dbg->config, dbg->inifile) < 0) {
-        printfd(CCL_RED "Fail to load ini file '%s'\n" CCL_END, dbg->inifile);
-        return -1;
+        //printfd(CCL_RED "Fail to load ini file '%s'\n" CCL_END, dbg->inifile);
+        //return -1;
     }
     
     // Parse command line 

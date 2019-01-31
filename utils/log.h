@@ -1,7 +1,7 @@
 /**
  * @file    log.h
  * @author  ln
- * @brief   print & save log info
+ * @brief   print log with any prefix into file stream
  **/
 
 #ifndef __LOG_INFO_H__
@@ -14,17 +14,11 @@
 #include <string.h>
 #include <pthread.h>
 
+#include "cstr.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* make string */
-#define _MAKE_CSTR(s)                   #s
-#define MAKE_CSTR(s)                    _MAKE_CSTR(s)
-
-/* concat string */
-#define _CONCAT_STRING(l, r)            l##r
-#define CONCAT_STRING(l, r)             _CONCAT_STRING(l, r)
 
 /* Control Sequence Introducer */
 #define CONSOLE_CSI_BEGIN               \x1b[
@@ -71,19 +65,55 @@ extern "C" {
                                         MAKE_CSTR(SGR_HIGHLIGHT) CSIE
 #define CCL_GRAY_DARK                   CSIB MAKE_CSTR(SGR_GRAY_DARK) CSIE
 #define CCL_END                         CSIB MAKE_CSTR(SGR_INIT) CSIE
+#define CCL_INIT                        CCL_END
 
-extern pthread_mutex_t mutex_log; 
+typedef int (*log_prefix_t)(FILE *);
 
-extern int          vfprintfd   (FILE *stream, const char *format, va_list param);
-extern int          fprintfd    (FILE *stream, const char *format, ...);
+typedef struct {
+    pthread_mutex_t lock; 
+    FILE*           stream;
+    log_prefix_t    prefix_callback;
+} log_cb_t;
 
-extern int          vprintfd    (const char *format, va_list param);
-extern int          printfd     (const char *format, ...);
+/* for using PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP, recursive and not inner process */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
-extern int logd(const char *format, ...);
-extern int logi(const char *format, ...);
-extern int logw(const char *format, ...);
-extern int loge(const char *format, ...);
+/* print prefix without lock */
+extern int log_prefix_date(FILE *stream);
+
+/* stdlog initializer */
+#define STDLOG_INITIALIZER                              \
+{                                                       \
+    .lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,     \
+    .stream = ::stdout,                                 \
+    .prefix_callback = log_prefix_date,                 \
+}
+
+extern log_cb_t * const stdlog;
+
+extern int          log_init        (log_cb_t *lcb);
+extern log_cb_t*    log_new         (log_cb_t **lcb);
+
+extern inline int   log_lock        (log_cb_t *lcb);
+extern inline int   log_unlock      (log_cb_t *lcb);
+
+extern int          log_set_stream  (log_cb_t *lcb, FILE *stream);
+extern int          log_set_prefix  (log_cb_t *lcb, log_prefix_t prefix);
+
+extern int          log_vfprintf    (log_cb_t *lcb, const char *format, va_list param);
+extern int          log_fprintf     (log_cb_t *lcb, const char *format, ...);
+
+/* use stdlog(stdout + date_prefix) */
+extern int          log_vprintf     (const char *format, va_list param);
+extern int          log_printf      (const char *format, ...);
+
+#define logd(format, ...)   log_printf(CCL_GRAY_DARK format CCL_END, ##__VA_ARGS__)
+#define logi(format, ...)   log_printf(format, ##__VA_ARGS__)
+#define logn(format, ...)   log_printf(CCL_WHITE_HL format CCL_END, ##__VA_ARGS__)
+#define logw(format, ...)   log_printf(CCL_YELLOW format CCL_END, ##__VA_ARGS__)
+#define loge(format, ...)   log_printf(CCL_RED format CCL_END, ##__VA_ARGS__)
 
 #ifdef __cplusplus
 }

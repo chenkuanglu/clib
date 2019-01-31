@@ -12,50 +12,63 @@ extern "C" {
 
 /**
  * @brief   Convert a string to lowercase
- * @param   in      String to convert
- *          out     Output buffer
- *          size    Size of the out buffer
- * @return  pointer to the out buffer or NULL if an error occured
- *
- * This function convert a string into lowercase.
- * At most size - 1 elements of the input string will be converted.
+ * @param   s       String to convert
+ * @return  pointer to the new string
  **/
-char* strlwr(char *out, const char *in, unsigned size)
+char* strlwr(char *s)
 {
-    if (in == NULL || out == NULL || size == 0) {
-        return NULL;
+    char *p = s;
+    if (p) {
+        while (*p) {
+            *p = (char)tolower((int)(*p));
+            p++;
+        }
     }
-    unsigned i = 0;
-    while (in[i] != '\0' && i < size-1) {
-        out[i] = (char)tolower((int)in[i]);
-        i++ ;
-    }
-    out[i] = '\0';
-    return out ;
+    return s;
 }
 
 /**
  * @brief   Convert a string to uppercase
- * @param   in      String to convert
- *          out     Output buffer
- *          size    Size of the out buffer
- * @return  pointer to the out buffer or NULL if an error occured
- *
- * This function convert a string into uppercase.
- * At most size - 1 elements of the input string will be converted.
+ * @param   s       String to convert
+ * @return  pointer to the new string
  **/
-char* strupr(char *out, const char *in, unsigned size)
+char* strupr(char *s)
 {
-    if (in == NULL || out == NULL || size == 0) {
-        return NULL;
+    char *p = s;
+    if (p) {
+        while (*p) {
+            *p = (char)toupper((int)(*p));
+            p++;
+        }
     }
-    unsigned i = 0;
-    while (in[i] != '\0' && i < size-1) {
-        out[i] = (char)toupper((int)in[i]);
-        i++ ;
+    return s;
+}
+
+/**
+ * @brief   Remove blanks at the beginning and the end of a string
+ * @param   s       String to parse and alter
+ * @return  New size of the string
+ **/
+int strstrip(char *s)
+{
+    char *last = NULL ;
+    char *dest = s;
+
+    if (s == NULL) 
+        return 0;
+
+    last = s + strlen(s);
+    while (isspace((int)*s) && *s) 
+        s++;
+    while (last > s) {
+        if (!isspace((int)*(last-1)))
+            break ;
+        last-- ;
     }
-    out[i] = '\0';
-    return out ;
+    *last = (char)0;
+
+    memmove(dest, s, last-s+1);
+    return last - s;
 }
 
 /**
@@ -64,7 +77,7 @@ char* strupr(char *out, const char *in, unsigned size)
  *          bin         bin to convert
  *          len         lenght of the bin to convert
  *
- * @return  the number of char in hex buffer
+ * @return  the number of char(exclude '\0') in hex buffer
  **/
 int bin2hex(char *hex, const void *bin, unsigned len)
 {
@@ -105,17 +118,21 @@ char* abin2hex(const void *bin, unsigned len)
  *          hex         hex to convert
  *          len         lenght of output bin buffer
  *
- * @return  void
+ * @return  Number of byte in bin buffer
+ *
+ * the string 'fde' is same as '0fde'
  **/
-void hex2bin(void *bin, const char *hex, unsigned len)
+int hex2bin(void *bin, const char *hex, unsigned len)
 {
     if (bin == NULL || hex == NULL || len == 0) 
-        return;
+        return 0;
 
+    unsigned len2 = len;
     char buf[4] = {0};
     if (strlen(hex) % 2) {
         buf[0] = *hex++;
         *((unsigned char *)bin) = (unsigned char)strtol(buf, NULL, 16);
+        len--;
         bin = (unsigned char *)bin + 1;
     }
     while (*hex && len) {
@@ -125,6 +142,7 @@ void hex2bin(void *bin, const char *hex, unsigned len)
         len--;
         bin = (unsigned char *)bin + 1;
     }
+    return len2 - len;
 }
 
 /**
@@ -161,14 +179,14 @@ void * ahex2bin(const char *hex)
  * section_size=2:[0][1][2][3] ===> [1][0][3][2]
  * section_size=4:[0][1][2][3] ===> [3][2][1][0], the same as big/small endian convert on integer
  *
- * len 0 means section size is the len
+ * section_size = 0 means section_size is the len
  *
- * @return  void
+ * @return  0 is ok 
  **/
-void memswap(void *out, const void *in, unsigned len, unsigned section_size)
+int memswap(void *out, const void *in, unsigned len, unsigned section_size)
 {
-    if (out == NULL || in == NULL || len == 0)
-        return;
+    if (out == NULL || in == NULL || len <= 1 || section_size <= 1 || len % section_size)
+        return -1;
 
     if (section_size == 0) {
         section_size = len;
@@ -185,44 +203,9 @@ void memswap(void *out, const void *in, unsigned len, unsigned section_size)
             ss++;
         }
     }
-}
 
-/**
- * @brief   split string by ',' or blank(' ') and store the result in a dictionary
- * @param   str     string to split
- *
- * Need to free the pointer returned from this func by calling dictionary_del()
- *
- * @return  pointer to dictionary
- *
- * Split number = dict->n
- * Split elment = dictionary_get(dict, "N", NULL)     // N = 0 ~ (dict->n - 1)
- **/
-//dictionary* strsplit(char *str, char sep)
-//{
-//    dictionary* dict = dictionary_new(0);
-//    if (dict == NULL) 
-//        return NULL;
-//
-//    char *begin = NULL;
-//    char *s = str;
-//    int len = strlen(str);
-//    while (len) {
-//        if (*s == ',' || *s == ' ') {
-//            if (begin != NULL) {
-//                dictionary_set();
-//                begin = NULL;
-//            }
-//        } else { 
-//            if (begin == NULL) {
-//                begin = s;
-//            }
-//        }
-//        s++;
-//    }
-//
-//    return dict;
-//}
+    return 0;
+}
 
 #ifdef __cplusplus
 }

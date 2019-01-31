@@ -42,8 +42,8 @@ int log_init(log_cb_t *lcb)
     if (lcb == NULL) 
         return -1;
 
-    lcb->lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-    lcb->stream = ::stdout;
+    lcb->lock = (pthread_mutex_t)PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+    lcb->stream = NULL;
     lcb->prefix_callback = log_prefix_date;
     return 0;
 }
@@ -67,7 +67,7 @@ log_cb_t* log_new(log_cb_t **lcb)
  * @param   lcb     log control block
  * @return  0 is ok
  **/
-inline int log_lock(log_cb_t *lcb)
+int log_lock(log_cb_t *lcb)
 {
     if (lcb == NULL) 
         return -1;
@@ -79,7 +79,7 @@ inline int log_lock(log_cb_t *lcb)
  * @param   lcb     log control block
  * @return  0 is ok
  **/
-inline int log_unlock(log_cb_t *lcb)
+int log_unlock(log_cb_t *lcb)
 {
     if (lcb == NULL) 
         return -1;
@@ -135,7 +135,10 @@ int log_vfprintf(log_cb_t *lcb, const char *format, va_list param)
     log_lock(lcb);
     if (lcb->prefix_callback != NULL) 
         num += lcb->prefix_callback(lcb->stream);
-    num += vfprintf(lcb->stream, format, param);         
+    if (lcb->stream == NULL)
+        num += vfprintf(stdout, format, param);         
+    else
+        num += vfprintf(lcb->stream, format, param);         
     log_unlock(lcb);
     
     return num;

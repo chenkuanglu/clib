@@ -7,6 +7,11 @@
 #ifndef __LOG_INFO_H__
 #define __LOG_INFO_H__
 
+/* for using PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP, recursive and not inner process */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -75,29 +80,19 @@ typedef struct {
     log_prefix_t    prefix_callback;
 } log_cb_t;
 
-/* for using PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP, recursive and not inner process */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 /* print prefix without lock */
 extern int log_prefix_date(FILE *stream);
 
-/* stdlog initializer */
-#define STDLOG_INITIALIZER                              \
-{                                                       \
-    .lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP,     \
-    .stream = ::stdout,                                 \
-    .prefix_callback = log_prefix_date,                 \
-}
+/* stdlog initializer, NULL stream means stdout */
+#define STDLOG_INITIALIZER  { PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP, NULL, log_prefix_date }
 
 extern log_cb_t * const stdlog;
 
 extern int          log_init        (log_cb_t *lcb);
 extern log_cb_t*    log_new         (log_cb_t **lcb);
 
-extern inline int   log_lock        (log_cb_t *lcb);
-extern inline int   log_unlock      (log_cb_t *lcb);
+extern int          log_lock        (log_cb_t *lcb);
+extern int          log_unlock      (log_cb_t *lcb);
 
 extern int          log_set_stream  (log_cb_t *lcb, FILE *stream);
 extern int          log_set_prefix  (log_cb_t *lcb, log_prefix_t prefix);

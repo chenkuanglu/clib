@@ -17,8 +17,9 @@ extern "C" {
  **/
 int mux_init(mux_t *mux)
 {
+    if (mux == NULL) 
+        return -1;
     pthread_mutexattr_init(&mux->attr);
-
     pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE);
     pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT);
     pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE);
@@ -27,11 +28,25 @@ int mux_init(mux_t *mux)
 }
 
 /**
+ * @brief   malloc & init mutex, inner process & recursive
+ * @param   mutex to be init
+ * @return  0 is sucess
+ **/
+mux_t* mux_new(mux_t **mux)
+{
+    mux_t *p = (mux_t *)malloc(sizeof(mux_t));
+    mux_init(p);
+    if (mux != NULL)
+        *mux = p;
+    return p;
+}
+
+/**
  * @brief   lock
  * @param   mutex to be lock
  * @return  0 is sucess
  **/
-int mux_lock(mux_t *mux)
+inline int mux_lock(mux_t *mux)
 {
     return pthread_mutex_lock(&mux->mux);
 }
@@ -41,7 +56,7 @@ int mux_lock(mux_t *mux)
  * @param   mutex to be unlock
  * @return  0 is sucess
  **/
-int mux_unlock(mux_t *mux)
+inline int mux_unlock(mux_t *mux)
 {
     return pthread_mutex_unlock(&mux->mux);
 }

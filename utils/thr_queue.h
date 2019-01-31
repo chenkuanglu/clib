@@ -20,12 +20,11 @@ extern "C" {
  * declare user data type with list head struct: 
  *
  *  struct __thrq_elm {
- *      // user data1 (empty as it is lib definition)
  *      struct {
  *          struct __thrq_elm *next;
  *          struct __thrq_elm **prev;   // a pointer to pointer!
  *      } entry;
- *      // user data2 (empty as it is lib definition)
+ *      // user data (empty as it is lib definition)
  *  } thrq_elm_t;
  *
  *    elm->entry.next  == pointer to next elm
@@ -50,16 +49,16 @@ typedef struct __thrq_elm {
  **/
 typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 
-typedef int (*thrq_cmp_data_t)(const void*, const void*, size_t len);
-typedef void* (*thrq_copy_data_t)(void*, const void*, size_t len);
-typedef void (*thrq_clean_data_t)(void *data);
+typedef int     (*thrq_cmp_data_t)      (const void*, const void*, size_t len);
+typedef void*   (*thrq_copy_data_t)     (void*, const void*, size_t len);
+typedef void    (*thrq_clean_data_t)    (void *data);
 
 /* thread safe queue control block */
 typedef struct {
-    thrq_head_t         head;
-    mux_t               lock;
+    thrq_head_t         head;           /* list header */
+    mux_t               lock;           /* data lock */
 
-    pthread_mutex_t     cond_lock;
+    pthread_mutex_t     cond_lock;      /* condition lock */
     pthread_cond_t      cond;
 
     int                 count;
@@ -131,9 +130,11 @@ extern int          thrq_receive        (thrq_cb_t *thrq, void *buf, int max_siz
 
 extern thrq_elm_t*  thrq_find           (thrq_cb_t *thrq, void *data, int len);
 
+#define thrq_new(q)                     thrq_create((q))
+
 /* thread safe */
-#define thrq_begin(thrq, data, len)     thrq_first(thrq)
-#define thrq_end(thrq, data, len)       thrq_last(thrq)
+#define thrq_begin(thrq)                thrq_first(thrq)
+#define thrq_end(thrq)                  thrq_last(thrq)
 #define thrq_push(thrq, data, len)      thrq_insert_head(thrq, data, len)
 #define thrq_pop(thrq)                  thrq_remove(thrq, thrq_first(thrq))
 #define thrq_append(thrq, data, len)    thrq_insert_tail(thrq, data, len)

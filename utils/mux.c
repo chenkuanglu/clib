@@ -46,7 +46,7 @@ mux_t* mux_new(mux_t **mux)
  * @param   mutex to be lock
  * @return  0 is sucess
  **/
-inline int mux_lock(mux_t *mux)
+int mux_lock(mux_t *mux)
 {
     return pthread_mutex_lock(&mux->mux);
 }
@@ -56,7 +56,7 @@ inline int mux_lock(mux_t *mux)
  * @param   mutex to be unlock
  * @return  0 is sucess
  **/
-inline int mux_unlock(mux_t *mux)
+int mux_unlock(mux_t *mux)
 {
     return pthread_mutex_unlock(&mux->mux);
 }

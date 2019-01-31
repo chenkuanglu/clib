@@ -19,10 +19,10 @@ typedef struct {
     pthread_mutexattr_t attr;
 } mux_t;
 
-extern int        mux_init      (mux_t *mux);
-extern mux_t*     mux_new       (mux_t **mux);
-extern inline int mux_lock      (mux_t *mux);
-extern inline int mux_unlock    (mux_t *mux);
+extern int      mux_init      (mux_t *mux);
+extern mux_t*   mux_new       (mux_t **mux);
+extern int      mux_lock      (mux_t *mux);
+extern int      mux_unlock    (mux_t *mux);
 
 #ifdef __cplusplus
 }

@@ -17,25 +17,25 @@ extern "C" {
 #endif
 
 /* make string */
-#define _MAKE_CSTR(s)               #s
-#define MAKE_CSTR(s)                _MAKE_CSTR(s)
+#define _MAKE_CSTR(s)           #s
+#define MAKE_CSTR(s)            _MAKE_CSTR(s)
 
 /* concat string */
-#define _CONCAT_STRING(l, r)        l##r
-#define CONCAT_STRING(l, r)         _CONCAT_STRING(l, r)
+#define _CONCAT_STRING(l, r)    l##r
+#define CONCAT_STRING(l, r)     _CONCAT_STRING(l, r)
 
-extern char*    strlwr      (char *s);
-extern char*    strupr      (char *s);
+extern char*    strlwr          (char *s);
+extern char*    strupr          (char *s);
 
-extern int      strstrip    (char *s);
+extern int      strstrip        (char *s);
 
-extern int      bin2hex     (char *hex, const void *bin, unsigned len);
-extern char*    abin2hex    (const void *bin, unsigned len);
+extern int      bin2hex         (char *hex, const void *bin, unsigned len);
+extern char*    abin2hex        (const void *bin, unsigned len);
 
-extern int      hex2bin     (void *bin, const char *hex, unsigned len);
-extern void*    ahex2bin    (const char *hex);
+extern int      hex2bin         (void *bin, const char *hex, unsigned len);
+extern void*    ahex2bin        (const char *hex);
 
-extern int      memswap     (void *out, const void *in, unsigned len, unsigned section_size);
+extern int      memswap         (void *out, const void *in, unsigned len, unsigned section_size);
 
 #ifdef __cplusplus
 }

@@ -182,13 +182,33 @@ void* mpool_malloc(mpool_t *mpool, size_t size)
 {
     if (mpool) {
         mux_lock(&mpool->lock);
-        if (size <= mpool->data_size && (!TAILQ_EMPTY(&mpool->hdr_free))){
-            mpool_elm_t *p = TAILQ_FIRST(&mpool->hdr_free);
-            if (p) {
-                TAILQ_REMOVE(&mpool->hdr_free, p, entry);
-                TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
-                mux_unlock(&mpool->lock);
-                return p->data;
+        if (mpool->mode == MPOOL_MODE_INIT) {
+            mux_unlock(&mpool->lock);
+            return NULL;
+        }
+        if (mpool->mode == MPOOL_MODE_MALLOC) {
+            mux_unlock(&mpool->lock);
+            return malloc(size);
+        }
+
+        if (size <= mpool->data_size) {
+            if (!TAILQ_EMPTY(&mpool->hdr_free)) {
+                mpool_elm_t *p = TAILQ_FIRST(&mpool->hdr_free);
+                if (p) {
+                    TAILQ_REMOVE(&mpool->hdr_free, p, entry);
+                    TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
+                    mux_unlock(&mpool->lock);
+                    return p->data;
+                }
+            } else {
+                if (mpool->mode == MPOOL_MODE_DGROWN) {
+                    mpool_elm_t *p = (mpool_elm_t *)malloc(MPOOL_BLOCK_SIZE(mpool->data_size));
+                    if (p) {
+                        TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
+                        mux_unlock(&mpool->lock);
+                        return p->data;
+                    }
+                }
             }
         }
         mux_unlock(&mpool->lock);
@@ -209,6 +229,14 @@ void  mpool_free(mpool_t *mpool, void *mem)
 {
     if (mpool && mem) {
         mux_lock(&mpool->lock);
+        if (mpool->mode == MPOOL_MODE_INIT) {
+            mux_unlock(&mpool->lock);
+            return;
+        }
+        if (mpool->mode == MPOOL_MODE_MALLOC) {
+            mux_unlock(&mpool->lock);
+            free(mem);
+        }
         mpool_elm_t *p = CONTAINER_OF(mem, mpool_elm_t, data);
         TAILQ_REMOVE(&mpool->hdr_used, p, entry);
         TAILQ_INSERT_TAIL(&mpool->hdr_free, p, entry);

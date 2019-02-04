@@ -236,6 +236,7 @@ void  mpool_free(mpool_t *mpool, void *mem)
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);
             free(mem);
+            return;
         }
         mpool_elm_t *p = CONTAINER_OF(mem, mpool_elm_t, data);
         TAILQ_REMOVE(&mpool->hdr_used, p, entry);

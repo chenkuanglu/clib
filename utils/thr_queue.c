@@ -34,10 +34,12 @@ int thrq_init(thrq_cb_t *thrq)
     pthread_cond_init(&thrq->cond, 0);
 
     thrq->count      = 0;
-    thrq->clean_data = 0;
+    thrq->free_data  = 0;
     thrq->copy_data  = memcpy;
     thrq->cmp_elm    = memcmp;
     thrq->max_size   = THRQ_MAX_SIZE_DEF;
+
+    mpool_init(&thrq->mpool, 0, 0);
 
     return 0;
 }
@@ -45,17 +47,35 @@ int thrq_init(thrq_cb_t *thrq)
 /**
  * @brief   set a function to free user data if neccessary
  * @param   thrq        queue
- *          clean_data  func to free user data
+ *          free_data   func to free user data
  *
  * @return  none
  *
- * func 'clean_data' will be called while removing element
+ * func 'free_data' will be called while removing element
  **/
-void thrq_set_clean(thrq_cb_t *thrq, thrq_clean_data_t clean_data)
+void thrq_set_free(thrq_cb_t *thrq, thrq_free_data_t free_data)
 {
     mux_lock(&thrq->lock);
-    thrq->clean_data = clean_data;
+    thrq->free_data = free_data;
     mux_unlock(&thrq->lock);
+}
+
+/**
+ * @brief   clean & init memory pool for thrq alloc/free
+ * @param   thrq        queue
+ *          n           number of data element
+ *          data_size   max size of user data
+ *
+ * @return  0 is ok
+ **/
+int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
+{
+    mux_lock(&thrq->lock);
+    mpool_clean(&thrq->mpool);
+    int res = mpool_init(&thrq->mpool, n, data_size);
+    mux_unlock(&thrq->lock);
+
+    return res;
 }
 
 /**
@@ -76,8 +96,8 @@ void thrq_set_copy(thrq_cb_t *thrq, thrq_copy_data_t copy_data)
 
 /**
  * @brief   set a function to compare user data if neccessary
- * @param   thrq        queue
- *          clean_data  func to compare user data
+ * @param   thrq            queue
+ *          compare_data    func to compare user data
  *
  * @return  none
  **/
@@ -181,7 +201,7 @@ int thrq_insert_head(thrq_cb_t *thrq, void *data, int len)
     }
 
     /* memoy allocate */
-    thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
+    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
     if (elm == 0) {
         mux_unlock(&thrq->lock);
         return -1;
@@ -219,7 +239,7 @@ int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
+    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
     if (elm == 0) {
         mux_unlock(&thrq->lock);
         return -1;
@@ -257,7 +277,7 @@ int thrq_insert_after(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
+    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
     if (elm == 0) {
         mux_unlock(&thrq->lock);
         return -1;
@@ -295,7 +315,7 @@ int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int le
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)malloc(sizeof(thrq_elm_t) + len);
+    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
     if (elm == 0) {
         mux_unlock(&thrq->lock);
         return -1;
@@ -369,11 +389,11 @@ int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 {
     if (elm != 0) {
         mux_lock(&thrq->lock);
-        if (thrq->clean_data) {
-            thrq->clean_data(elm->data);
+        if (thrq->free_data) {
+            thrq->free_data(elm->data);
         }
         TAILQ_REMOVE(&thrq->head, elm, entry);
-        free(elm);
+        mpool_free(&thrq->mpool, elm);
         if (thrq->count > 0) {
             thrq->count--;
         }
@@ -436,17 +456,10 @@ thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len)
  **/
 int thrq_send(thrq_cb_t *thrq, void *data, int len)
 {
-    int res = 0;
-
-    pthread_mutex_lock(&thrq->cond_lock);       /* lock the condition first!!! */
-    mux_lock(&thrq->lock);
-
-    res = thrq_insert_tail(thrq, data, len);
+    pthread_mutex_lock(&thrq->cond_lock);
+    int res = thrq_insert_tail(thrq, data, len);
     pthread_cond_signal(&thrq->cond);
-
-    mux_unlock(&thrq->lock);
     pthread_mutex_unlock(&thrq->cond_lock);
-
     return res;
 }
 

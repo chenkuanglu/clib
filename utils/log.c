@@ -131,14 +131,14 @@ int log_vfprintf(log_cb_t *lcb, const char *format, va_list param)
     if (lcb == NULL || format == NULL)
         return 0;
 
-    int num = 0;
     log_lock(lcb);
-    if (lcb->prefix_callback != NULL) 
-        num += lcb->prefix_callback(lcb->stream);
+    int num = 0;
+    FILE *s = lcb->stream;
     if (lcb->stream == NULL)
-        num += vfprintf(stdout, format, param);         
-    else
-        num += vfprintf(lcb->stream, format, param);         
+        s = stdout;
+    if (lcb->prefix_callback != NULL) 
+        num += lcb->prefix_callback(s);
+    num += vfprintf(s, format, param);         
     log_unlock(lcb);
     
     return num;

@@ -1,3 +1,4 @@
+#include "log.h"
 #include "mux.h"
 #include "thr_queue.h"
 #include <string.h>
@@ -15,16 +16,16 @@ void* fn(void *arg)
 {
     (void)arg;
 
-    int buf;
+    int buf[1000*30];
 
     for (;;) {
-        int ret = thrq_receive(myq, &buf, 4, 1.5);
+        int ret = thrq_receive(myq, &buf, 30*1000, 0.5);
         if (ret == ETIMEDOUT)
-            printf("sub thread rcv timeout\n");
+            logw("sub thread rcv timeout\n");
         else if (ret == 0)
-            printf("sub thread get data: %d\n", buf);
+            logn("sub thread get data: %d\n", buf[0]);
         else 
-            printf("sub thread error\n");
+            loge("sub thread error\n");
     }
 
     return 0;
@@ -48,6 +49,7 @@ int main()
         printf("create & init queue: ok\n");
 
     //thrq_set_compare(myq, elmcmp);
+    thrq_set_mpool(myq, 10, 300*1000);
 
     // empty
     if (thrq_empty(myq))
@@ -118,11 +120,12 @@ int main()
     pthread_t pth;
     printf("create thread for receive...\n");
     pthread_create(&pth, 0, fn, 0);
-    int snd_data = 1000;
+    int snd_data[1000*20];
+    snd_data[0] = 1000;
     for (;;) {
-        thrq_send(myq, &snd_data, 4);
-        snd_data++;
-        sleep(6);
+        thrq_send(myq, snd_data, 1000*20);
+        snd_data[0]++;
+        usleep(500*1000);
     }
 
     exit(0);

@@ -185,8 +185,10 @@ void * ahex2bin(const char *hex)
  **/
 int memswap(void *out, const void *in, unsigned len, unsigned section_size)
 {
-    if (out == NULL || in == NULL || len <= 1 || section_size <= 1 || len % section_size)
+    if (out == NULL || in == NULL || len % section_size)
         return -1;
+    if (len <= 1 || section_size <= 1)
+        return 0;
 
     if (section_size == 0) {
         section_size = len;

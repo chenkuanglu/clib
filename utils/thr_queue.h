@@ -52,7 +52,7 @@ typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 
 typedef int     (*thrq_cmp_data_t)      (const void*, const void*, size_t len);
 typedef void*   (*thrq_copy_data_t)     (void*, const void*, size_t len);
-typedef void    (*thrq_free_data_t)    (void *data);
+typedef void    (*thrq_free_data_t)     (void *data);
 
 /* thread safe queue control block */
 typedef struct {

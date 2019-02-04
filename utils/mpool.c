@@ -11,7 +11,7 @@ extern "C" {
 #endif 
 
 #define OFFSET_OF(TYPE, MEMBER)             ((size_t)&((TYPE *)0)->MEMBER)
-#define CONTAINER_OF(ptr, type, member)     ((type *)((char *)ptr - OFFSET_OF(type,member)))
+#define CONTAINER_OF(ptr, type, member)     ((type *)((char *)(ptr) - OFFSET_OF(type,member)))
 
 /**
  * @brief   Init memory pool, do not init a mpool in use before clean it,
@@ -162,10 +162,8 @@ mpool_t* mpool_new(size_t n, size_t data_size)
 void mpool_delete(mpool_t *mpool)
 {
     if (mpool) {
-        mux_lock(&mpool->lock);
         mpool_clean(mpool);
         free(mpool);
-        mux_unlock(&mpool->lock);
     }
 }
 

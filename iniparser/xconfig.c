@@ -9,21 +9,17 @@
 
 int iniparser_error_callback(const char *format, ...)
 {
-    int num;
-    static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-              
-    pthread_mutex_lock(&mutex);  
+    log_lock(stdlog);
 
-    num = printfd("");
+    int num = log_prefix_date(stdout);
     num += printf(CCL_RED);
     va_list arg;
     va_start(arg, format);
     num += vprintf(format, arg);
     va_end(arg);
     num += printf(CCL_END);
-         
-    pthread_mutex_unlock(&mutex);
 
+    log_unlock(stdlog);
     return num;
 }
 
@@ -39,7 +35,7 @@ static xconfig_t* xconfig_init(xconfig_t* xconfig)
         xconfig->stop_bits      = STOP_BITS_DEFAULT;
         xconfig->benchmark_en   = BENCHMARK_EN_DEFAULT;
     }
-    iniparser_set_error_callback(loge);
+    iniparser_set_error_callback(iniparser_error_callback);
     return xconfig;
 }
 
@@ -60,9 +56,7 @@ int xconfig_load(xconfig_t *xconfig, const char *inifile)
         xconfig->DICT_ENTRY = dict;
         
         /* [serial] */
-#ifdef DEBUG
-        printfd("xconfig: Loading serial config\n");
-#endif
+        logd("xconfig: Loading serial config\n");
         if (xconfig->dev_name) {
             free(xconfig->dev_name);
         }
@@ -78,25 +72,20 @@ int xconfig_load(xconfig_t *xconfig, const char *inifile)
             xconfig->parity = Even;
         } else {
             xconfig->parity = PARITY_DEFAULT;
-            printfd(CCL_YELLOW "xconfig: Unknown serial parity config '%s'\n" CCL_END, pty);
+            logw("xconfig: Unknown serial parity config '%s'\n", pty);
         }
         xconfig->stop_bits = iniparser_getlongint(xconfig->DICT_ENTRY, CFG_STOP_BITS, STOP_BITS_DEFAULT);
-#ifdef DEBUG
-        printfd("dev_name   = %s\n", xconfig->dev_name);
-        printfd("baudrate   = %d\n", xconfig->baudrate);
-        printfd("data_bits  = %d\n", xconfig->data_bits);
-        printfd("parity     = %s\n", (xconfig->parity == None) ? "None" : ((xconfig->parity == Odd) ? "Odd" : "Even"));
-        printfd("stop_bits  = %d\n", xconfig->stop_bits);
-#endif
+        logd("dev_name   = %s\n", xconfig->dev_name);
+        logd("baudrate   = %d\n", xconfig->baudrate);
+        logd("data_bits  = %d\n", xconfig->data_bits);
+        logd("parity     = %s\n", (xconfig->parity == None) ? "None" : ((xconfig->parity == Odd) ? "Odd" : "Even"));
+        logd("stop_bits  = %d\n", xconfig->stop_bits);
+
         /* [benchmark] */
-#ifdef DEBUG
-        printfd("\n");
-        printfd("xconfig: Loading benchmark config\n");
-#endif
+        logd("\n");
+        logd("xconfig: Loading benchmark config\n");
         xconfig->benchmark_en = iniparser_getboolean(xconfig->DICT_ENTRY, CFG_BENCHMARK_EN, (int)BENCHMARK_EN_DEFAULT);
-#ifdef DEBUG
-        printfd("benchmark_en = %s\n", xconfig->benchmark_en ? "true" : "false");
-#endif
+        logd("benchmark_en = %s\n", xconfig->benchmark_en ? "true" : "false");
 
         ret = 0;
     }

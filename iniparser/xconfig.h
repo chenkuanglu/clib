@@ -8,6 +8,7 @@
 #define __XCONFIG_H__
 
 #include "cstr.h"
+#include "log.h"
 #include "dictionary.h"
 #include "iniparser.h"
 #include <stdbool.h>

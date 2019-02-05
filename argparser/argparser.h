@@ -8,6 +8,7 @@
 #define __ARG_PARSER_H__
 
 #include "thr_queue.h"
+#include "log.h"
 
 #ifdef __cplusplus
 extern "C" {

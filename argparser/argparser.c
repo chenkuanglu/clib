@@ -5,7 +5,6 @@
  **/
 
 #include "argparser.h"
-#include "cstr.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +24,7 @@ static int argcmp(const void* left, const void* right, size_t len)
         const argparser_args_t *l = (const argparser_args_t *)left;
         const argparser_args_t *r = (const argparser_args_t *)right;
         if (strcmp(l->name, r->name) == 0)  {
-            printfd(CCL_RED "argparser: Cannot add arg '%s', multiple arg name\n" CCL_END);
+            loge("argparser: multiple arg name '%s'\n", l->name);
             return 0;
         }
     }
@@ -66,11 +65,11 @@ void argparser_delete(argparser_t* parser)
 void argparser_add(argparser_t *parser, const char* arg_name, long arg_id, int param_num)
 {
     if (parser == NULL || arg_name == NULL || arg_id <= 0 || param_num < 0) {
-        printfd(CCL_RED "argparser: Invalid parameter\n" CCL_END);
+        loge("argparser: Invalid parameter\n");
         return;
     }
     if (strlen(arg_name) > MAX_ARG_NAME - 1) {
-        printfd(CCL_RED "argparser: Arg name too long\n" CCL_END);
+        loge("argparser: Arg name too long\n");
         return;
     }
 
@@ -80,7 +79,7 @@ void argparser_add(argparser_t *parser, const char* arg_name, long arg_id, int p
     arg.n = param_num;
     if (thrq_find(parser->arg_names, &arg, sizeof(argparser_args_t)) == NULL) {
         if (thrq_append(parser->arg_names, &arg, sizeof(argparser_args_t)) < 0)
-            printfd(CCL_RED "argparser: Fail to add, cannot insert queue\n" CCL_END);
+            loge("argparser: Fail to add, cannot insert queue\n");
     }
 }
 
@@ -109,7 +108,7 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
                             prev_v = NULL;
                         }
                     }
-                    printfd(CCL_RED "argparser: Fail to parse '%s', Short of parameter\n" CCL_END, *v);
+                    loge("argparser: Fail to parse '%s', Short of parameter\n", *v);
                     return -1;
                 }
 

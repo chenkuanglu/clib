@@ -55,7 +55,7 @@ void signal_handler(int signal)
     switch (signal) {
         case SIGINT:
             printf("\n");
-            printfd(CCL_YELLOW "Ctrl-C, Debugger exit.\n" CCL_END);
+            logw("Ctrl-C, Debugger exit.\n");
             exit(0);
             break;
         default:
@@ -102,24 +102,20 @@ static int cmdline_proc(long id, char **param, int num)
             break;
         case 'v':
             dbg->run_mode = RUN_MODE_VERSION;
-            printfd(CCL_GREEN "Serial Debugger Version %s\n" CCL_END, DBG_VERSION);
+            logn("Serial Debugger Version %s\n", DBG_VERSION);
             break;
         case 'd':
             free(dbg->config->dev_name);
             dbg->config->dev_name = NULL;
             dbg->config->dev_name = strdup(param[0]);
-#ifdef DEBUG
-            printfd(CCL_CYAN "Set serial device: '%s'\n" CCL_END, dbg->config->dev_name);
-#endif
+            logi("Set serial device: '%s'\n", dbg->config->dev_name);
             break;
         case 1001:  // --baud
             dbg->config->baudrate = strtol(param[0], NULL, 0);
-#ifdef DEBUG
-            printfd(CCL_CYAN "Set baudrate: %d\n" CCL_END, dbg->config->baudrate);
-#endif
+            logi("Set baudrate: %d\n", dbg->config->baudrate);
             break;
         default:
-            printfd(CCL_YELLOW "Unknown arg id %d\n" CCL_END, id);
+            loge("Unknown arg id %d\n", id);
             break;
     }
 
@@ -204,11 +200,11 @@ static int dbg_run(void)
     draw();
 #endif
 
-    printfd(CCL_GREEN "Serial Debugger Version %s\n" CCL_END, DBG_VERSION);
+    logn("Serial Debugger Version %s\n", DBG_VERSION);
 
     thrq_cb_t *myq = thrq_create(NULL);
     if (myq == NULL) {
-        printfd(CCL_RED "Fail to create queue\n" CCL_END);
+        loge("Fail to create queue\n");
     }
     
     double tmout = 2.0;
@@ -216,9 +212,9 @@ static int dbg_run(void)
     for (;;) {
         int ret = thrq_receive(myq, &buf, sizeof(buf), tmout);
         if (ret == ETIMEDOUT) {
-            printfd(CCL_YELLOW "%.2fs timeout...\n" CCL_END, tmout);
+            logw("%.2fs timeout...\n", tmout);
         } else {
-            printfd(CCL_RED "error occured: %s\n" CCL_END, strerror(errno));
+            loge("error occured: %s\n", strerror(errno));
         }
     }
 
@@ -232,7 +228,7 @@ int main(int argc, char **argv)
     // Init main control block
     dbg = (dbg_cb_t *)malloc(sizeof(dbg_cb_t));
     if (dbg == NULL) {
-        printfd(CCL_RED "Fail to malloc 'dbg_cb_t'\n" CCL_END);
+        loge("Fail to malloc 'dbg_cb_t'\n");
         return -1;
     }
     dbg->inifile = strdup("./dbg.ini");
@@ -241,21 +237,18 @@ int main(int argc, char **argv)
     // Open & parse ini file
     dbg->config = xconfig_new();
     if (dbg->config == NULL) {
-        printfd(CCL_RED "Fail to new 'xconfig_t'\n" CCL_END);
+        loge("Fail to new 'xconfig_t'\n");
         return -1;
     }
-#ifdef DEBUG
-    printfd(CCL_CYAN "Load ini file '%s'\n" CCL_END, dbg->inifile);
-#endif
+    logd("Load ini file '%s'\n", dbg->inifile);
     if (xconfig_load(dbg->config, dbg->inifile) < 0) {
-        //printfd(CCL_RED "Fail to load ini file '%s'\n" CCL_END, dbg->inifile);
-        //return -1;
+        logw("Fail to load ini file '%s'\n", dbg->inifile);
     }
     
     // Parse command line 
     argparser_t* cmdline = argparser_new(argc, argv);
     if (cmdline == NULL) {
-        printfd(CCL_RED "Fail to new 'argparser_t'\n" CCL_END);
+        loge("Fail to new 'argparser_t'\n");
         return -1;
     }
     argparser_add(cmdline, "-h", 'h', 0);
@@ -263,7 +256,7 @@ int main(int argc, char **argv)
     argparser_add(cmdline, "-d", 'd', 1);
     argparser_add(cmdline, "--baud", 1001, 1);
     if (argparser_parse(cmdline, cmdline_proc) < 0) {
-        printfd(CCL_RED "Fail to process command line\n" CCL_END);
+        loge("Fail to process command line\n");
         return -1;
     }
 
@@ -278,10 +271,7 @@ int main(int argc, char **argv)
             break;
     }
 
-#ifdef DEBUG
-    printfd(CCL_YELLOW "Debugger exit.\n" CCL_END);
-#endif
-
+    logd(CCL_YELLOW "Debugger exit.\n" CCL_END);
     return 0;
 }
 

@@ -104,7 +104,11 @@ extern int          log_fprintf     (log_cb_t *lcb, const char *format, ...);
 extern int          log_vprintf     (const char *format, va_list param);
 extern int          log_printf      (const char *format, ...);
 
+#ifdef DEBUG
 #define logd(format, ...)   log_printf(CCL_GRAY_DARK format CCL_END, ##__VA_ARGS__)
+#else
+#define logd(format, ...)    
+#endif
 #define logi(format, ...)   log_printf(format, ##__VA_ARGS__)
 #define logn(format, ...)   log_printf(CCL_WHITE_HL format CCL_END, ##__VA_ARGS__)
 #define logw(format, ...)   log_printf(CCL_YELLOW format CCL_END, ##__VA_ARGS__)

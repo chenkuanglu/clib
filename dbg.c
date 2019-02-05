@@ -24,12 +24,12 @@ enum {
 };
 
 // help infomation
-char help_tbl[] = CCL_WHITE_HL "\
+char help_tbl[] = "\
 Usage: sdbg [-h] [-v] [-d <file>] [<option> --help]\n\n\
     -h                  Display this information\n\
     -v                  Display version\n\
     -d <file>           Set serial device\n\
-    --baud <integer>    Set baudrate\n" CCL_END;
+    --baud <integer>    Set baudrate\n";
 
 char help_version[] ="\
 Usage: sdbg -v\n\
@@ -55,7 +55,7 @@ void signal_handler(int signal)
     switch (signal) {
         case SIGINT:
             printf("\n");
-            logw("Ctrl-C, Debugger exit.\n");
+            logd("Ctrl-C, Debugger exit.\n");
             exit(0);
             break;
         default:
@@ -102,7 +102,7 @@ static int cmdline_proc(long id, char **param, int num)
             break;
         case 'v':
             dbg->run_mode = RUN_MODE_VERSION;
-            logn("Serial Debugger Version %s\n", DBG_VERSION);
+            printf("Serial Debugger Version %s\n", DBG_VERSION);
             break;
         case 'd':
             free(dbg->config->dev_name);
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
             break;
     }
 
-    logd(CCL_YELLOW "Debugger exit.\n" CCL_END);
+    logd("Debugger exit.\n");
     return 0;
 }
 

@@ -27,16 +27,14 @@ extern "C" {
  **/
 int thrq_init(thrq_cb_t *thrq)
 {
-
     TAILQ_INIT(&thrq->head);
 
     mux_init(&thrq->lock);
     pthread_mutex_init(&thrq->cond_lock, 0);
 
-    pthread_condattr_t cond_attr;
-    pthread_condattr_init(&cond_attr);
-    pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
-    pthread_cond_init(&thrq->cond, &cond_attr);
+    pthread_condattr_init(&thrq->cond_attr);
+    pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC);
+    pthread_cond_init(&thrq->cond, &thrq->cond_attr);
 
     thrq->count      = 0;
     thrq->free_data  = 0;
@@ -365,9 +363,16 @@ thrq_cb_t* thrq_create(thrq_cb_t **thrq)
  **/
 void thrq_clean(thrq_cb_t *thrq)
 {
-    while (thrq && !thrq_empty(thrq)) {
-        thrq_remove(thrq, thrq_first(thrq));
-    }    
+    if (thrq) {
+        while (!thrq_empty(thrq)) {
+            thrq_remove(thrq, thrq_first(thrq));
+        }    
+        pthread_cond_destroy(&thrq->cond);
+        pthread_mutex_destroy(&thrq->cond_lock);
+        pthread_condattr_destroy(&thrq->cond_attr);
+        mux_clean(&thrq->lock);
+        mpool_clean(&thrq->mpool);
+    }
 }
 
 /**

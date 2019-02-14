@@ -61,6 +61,7 @@ typedef struct {
     thrq_head_t         head;           /* list header */
     mux_t               lock;           /* data lock */
 
+    pthread_condattr_t  cond_attr;
     pthread_mutex_t     cond_lock;      /* condition lock */
     pthread_cond_t      cond;
 

@@ -72,9 +72,11 @@ int mpool_init(mpool_t *mpool, size_t n, size_t data_size)
 
 /**
  * @brief   clean mpool, mpool will be inavailable after clean done,
- *          mpool must be init before using
+ *          mpool must be init before using it
  * @param   mpool   mpool to be cleaned
  * @return  void
+ *
+ * mpool not available including lock/unlock after cleaning!!!
  **/
 void mpool_clean(mpool_t *mpool)
 {
@@ -101,6 +103,8 @@ void mpool_clean(mpool_t *mpool)
         mpool->data_size = 0;
         mpool->mode = MPOOL_MODE_INIT;
         mux_unlock(&mpool->lock);
+
+        mux_clean(&mpool->lock);
     }
 }
 
@@ -111,7 +115,11 @@ void mpool_clean(mpool_t *mpool)
  *          buf_size    buffer size
  *          data_size   max size of user data
  *
- * @return  0 is ok. -1 returned if mpool is in-service(used-queue not empty).
+ * @return  0 is ok. -1 returned if mpool is in-service.
+ *
+ * mpool must be empty before mpool_setbuf called, example:
+ *      mpool_init(pool, 0, 0);
+ *      mpool_setbuf(...);
  **/
 int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
 {
@@ -119,11 +127,11 @@ int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
         return -1;
     }
     mux_lock(&mpool->lock);
-    if (!TAILQ_EMPTY(&mpool->hdr_used)) {   /* error, mpool is in-service */
+    if ((!TAILQ_EMPTY(&mpool->hdr_used)) 
+        || (!TAILQ_EMPTY(&mpool->hdr_free)) || (!mpool->buffer)) {   /* error, mpool is in-service */
         mux_unlock(&mpool->lock);
         return -1;
     }
-    mpool_clean(mpool);
     mpool->buffer = buf;
     size_t n = buf_size / MPOOL_BLOCK_SIZE(data_size);
     for (size_t i=0; i<n; i++) {
@@ -180,10 +188,6 @@ void* mpool_malloc(mpool_t *mpool, size_t size)
 {
     if (mpool) {
         mux_lock(&mpool->lock);
-        if (mpool->mode == MPOOL_MODE_INIT) {
-            mux_unlock(&mpool->lock);
-            return NULL;
-        }
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);
             return malloc(size);
@@ -227,10 +231,6 @@ void  mpool_free(mpool_t *mpool, void *mem)
 {
     if (mpool && mem) {
         mux_lock(&mpool->lock);
-        if (mpool->mode == MPOOL_MODE_INIT) {
-            mux_unlock(&mpool->lock);
-            return;
-        }
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);
             free(mem);

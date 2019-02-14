@@ -491,7 +491,6 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
         ts.tv_sec = (time_t)timeout + ts.tv_sec + (ts.tv_nsec / 1000000000L);
         ts.tv_nsec = ts.tv_nsec % 1000000000L;
     }
-    printf("s=%ld, ns=%ld ##############################", ts.tv_sec, ts.tv_nsec);
 
     pthread_mutex_lock(&thrq->cond_lock);
 

@@ -28,9 +28,24 @@ int mux_init(mux_t *mux)
 }
 
 /**
+ * @brief   destroy mutex 
+ * @param   mux     mutex to be clean 
+ * @return  void
+ *
+ * do not call this function if a mutex was initialized by INITIALIZER macro! 
+ **/
+void mux_clean(mux_t *mux)
+{
+    if (mux) {
+        pthread_mutexattr_destroy(&mux->attr);
+        pthread_mutex_destroy(&mux->mux);
+    }
+}
+
+/**
  * @brief   malloc & init mutex, inner process & recursive
- * @param   mutex to be init
- * @return  0 is sucess
+ * @param   mux     pointer to your mutex pointer
+ * @return  pointer to the mutex created
  **/
 mux_t* mux_new(mux_t **mux)
 {
@@ -39,6 +54,19 @@ mux_t* mux_new(mux_t **mux)
     if (mux != NULL)
         *mux = p;
     return p;
+}
+
+/**
+ * @brief   destroy mutex & free mutex itself
+ * @param   mux     mutex to be delete
+ * @return  void
+ **/
+void mux_delete(mux_t *mux)
+{
+    if (mux) {
+        mux_clean(mux);
+        free(mux);
+    }
 }
 
 /**

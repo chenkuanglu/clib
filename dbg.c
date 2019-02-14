@@ -207,7 +207,7 @@ static int dbg_run(void)
         loge("Fail to create queue\n");
     }
     
-    double tmout = 2.0;
+    double tmout = 1.9;
     char *buf[32];
     for (;;) {
         int ret = thrq_receive(myq, &buf, sizeof(buf), tmout);

@@ -27,11 +27,16 @@ extern "C" {
  **/
 int thrq_init(thrq_cb_t *thrq)
 {
+
     TAILQ_INIT(&thrq->head);
 
     mux_init(&thrq->lock);
     pthread_mutex_init(&thrq->cond_lock, 0);
-    pthread_cond_init(&thrq->cond, 0);
+
+    pthread_condattr_t cond_attr;
+    pthread_condattr_init(&cond_attr);
+    pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
+    pthread_cond_init(&thrq->cond, &cond_attr);
 
     thrq->count      = 0;
     thrq->free_data  = 0;
@@ -478,16 +483,15 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
 int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
 {
     int res = 0;
-    int nsec;
     struct timespec ts;
-    struct timeval now;
 
     if (timeout > 0) {
-        gettimeofday(&now, NULL);
-        nsec = (long)((timeout - (long)timeout) * 1000000000L) + now.tv_usec*1000L;
-        ts.tv_sec = (long)timeout + now.tv_sec + nsec/1000000000L;
-        ts.tv_nsec = nsec % 1000000000L;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        ts.tv_nsec = (long)((timeout - (long)timeout) * 1000000000L) + ts.tv_nsec;  // ok, max_long_int = 2.1s > (1s + 1s)
+        ts.tv_sec = (time_t)timeout + ts.tv_sec + (ts.tv_nsec / 1000000000L);
+        ts.tv_nsec = ts.tv_nsec % 1000000000L;
     }
+    printf("s=%ld, ns=%ld ##############################", ts.tv_sec, ts.tv_nsec);
 
     pthread_mutex_lock(&thrq->cond_lock);
 

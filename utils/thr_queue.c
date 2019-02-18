@@ -36,11 +36,11 @@ int thrq_init(thrq_cb_t *thrq)
     pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC);
     pthread_cond_init(&thrq->cond, &thrq->cond_attr);
 
-    thrq->count      = 0;
-    thrq->free_data  = 0;
-    thrq->copy_data  = memcpy;
-    thrq->cmp_elm    = memcmp;
-    thrq->max_size   = THRQ_MAX_SIZE_DEF;
+    thrq->count         = 0;
+    thrq->destroy_data  = 0;
+    thrq->copy_data     = memcpy;
+    thrq->cmp_elm       = memcmp;
+    thrq->max_size      = THRQ_MAX_SIZE_DEF;
 
     mpool_init(&thrq->mpool, 0, 0);
 
@@ -49,17 +49,21 @@ int thrq_init(thrq_cb_t *thrq)
 
 /**
  * @brief   set a function to free user data if neccessary
- * @param   thrq        queue
- *          free_data   func to free user data
+ * @param   thrq            queue
+ *          destroy_data    func to destroy user data(elm->data), but not free the pointer of elm->data 
  *
  * @return  none
  *
- * func 'free_data' will be called while removing element
+ * func 'destroy_data' will be called while removing element
+ *
+ * element delete:
+ * 1 destroy elm->data, release the pointer or kernel objects inner elm->data
+ * 2 free the elm (including elm header and elm->data)
  **/
-void thrq_set_free(thrq_cb_t *thrq, thrq_free_data_t free_data)
+void thrq_set_free(thrq_cb_t *thrq, thrq_destroy_data_t destroy_data)
 {
     mux_lock(&thrq->lock);
-    thrq->free_data = free_data;
+    thrq->destroy_data = destroy_data;
     mux_unlock(&thrq->lock);
 }
 
@@ -399,8 +403,8 @@ int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 {
     if (elm != 0) {
         mux_lock(&thrq->lock);
-        if (thrq->free_data) {
-            thrq->free_data(elm->data);
+        if (thrq->destroy_data) {
+            thrq->destroy_data(elm->data);
         }
         TAILQ_REMOVE(&thrq->head, elm, entry);
         mpool_free(&thrq->mpool, elm);

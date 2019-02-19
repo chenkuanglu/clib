@@ -253,10 +253,10 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
  *          max_size    buf size
  *          timeout     thread block time, 0 is block until signal received
  *
- * @return  0 is ok
+ * @return  0 is ok, -res is error.
  * 
  *  function returns when error occured or data received,
- *  ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno.h>)
+ *  -ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno.h>)
  **/
 int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
 {
@@ -271,7 +271,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     }
 
     if ((res = pthread_mutex_lock(&thrq->cond_lock)) < 0)
-        return res;
+        return -res;
 
     /* break when error occured or data receive */
     while (res == 0 && thrq_count(thrq) <= 0) {
@@ -283,16 +283,17 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     }
     if (res != 0) {
         pthread_mutex_unlock(&thrq->cond_lock);
-        return res;
+        return -res;
     }
 
     /* data received */
     if ((res = mux_lock(&thrq->lock)) < 0) {
         pthread_mutex_unlock(&thrq->cond_lock);
-        return res;
+        return -res;
     }
     thrq_elm_t *elm = THRQ_FIRST(thrq);
-    memcpy(buf, elm->data, ((max_size < elm->len) ? max_size : elm->len));
+    res = (max_size < elm->len) ? max_size : elm->len;
+    memcpy(buf, elm->data, res);
     thrq_remove(thrq, elm);
     mux_unlock(&thrq->lock);
 

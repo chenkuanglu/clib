@@ -1,8 +1,5 @@
-// debugger 
+// Debugger 
 
-#ifdef USE_GUI
-#include <curses.h>
-#endif
 #include <signal.h>
 #include "thr_queue.h"
 #include "xconfig.h"
@@ -14,37 +11,31 @@
 typedef struct {
     char*           inifile;    // *.ini file
     xconfig_t*      config;     // config info come from ini & cmdline
-    int             run_mode;
 } dbg_cb_t;
-
-enum {
-    RUN_MODE_NORMAL,    // normal 
-    RUN_MODE_HELP,      // print help info, '-h x' or 'x --help'
-    RUN_MODE_VERSION,   // print version
-};
 
 // help infomation
 char help_tbl[] = "\
-Usage: sdbg [-h] [-v] [-d <file>] [<option> --help]\n\n\
+Usage: dbg [options] [<options> --help]\n\
+Options:\
     -h                  Display this information\n\
     -v                  Display version\n\
     -d <file>           Set serial device\n\
     --baud <integer>    Set baudrate\n";
 
 char help_version[] ="\
-Usage: sdbg -v\n\
+Usage: dbg -v\n\
     Display version\n";
 
 char help_help[] ="\
-Usage: sdbg -h\n\
+Usage: dbg -h\n\
     Display help\n";
 
 char help_baud[] ="\
-Usage: sdbg --baud <integer>\n\
+Usage: dbg --baud <integer>\n\
     Set baudrate\n";
 
 char help_device[] ="\
-Usage: sdbg -d <file>\n\
+Usage: dbg -d <file>\n\
     Set serial device\n";
 
 // main control block
@@ -90,114 +81,43 @@ static int help(long id)
 static int cmdline_proc(long id, char **param, int num)
 {
     if ((param) && (num > 0) && (strcmp(param[0], "--help") == 0)) {
-        dbg->run_mode = RUN_MODE_HELP;
         help(id);
-        return -1;  // stop parse
+        exit(0);
     }
 
     switch (id) {
         case 'h':
-            dbg->run_mode = RUN_MODE_HELP;
             help(0);
+            exit(0);
             break;
         case 'v':
-            dbg->run_mode = RUN_MODE_VERSION;
-            printf("Serial Debugger Version %s\n", DBG_VERSION);
+            printf("Debugger Version %s\n", DBG_VERSION);
+            exit(0);
             break;
         case 'd':
-            free(dbg->config->dev_name);
-            dbg->config->dev_name = NULL;
-            dbg->config->dev_name = strdup(param[0]);
-            logi("Set serial device: '%s'\n", dbg->config->dev_name);
+            //free(dbg->config->dev_name);
+            //dbg->config->dev_name = NULL;
+            //dbg->config->dev_name = strdup(param[0]);
+            //dbg_setdev();
+            //logi("Set serial device: '%s'\n", dbg->config->dev_name);
             break;
         case 1001:  // --baud
-            dbg->config->baudrate = strtol(param[0], NULL, 0);
-            logi("Set baudrate: %d\n", dbg->config->baudrate);
+            //dbg->config->baudrate = strtol(param[0], NULL, 0);
+            //dbg_setbaud();
+            //logi("Set baudrate: %d\n", dbg->config->baudrate);
             break;
         default:
             loge("Unknown arg id %d\n", id);
+            exit(0);
             break;
     }
 
     return 0;
 }
 
-#ifdef USE_GUI
-void draw(void)
-{
-    initscr();
-    cbreak();
-    noecho();
-    nl();
-
-    char msgbx[] = "message box";
-    int y, x, height = 10, width = 30;
-    y = (LINES - height) / 2;
-    x = (COLS - width) / 2;
-
-    WINDOW *mywin = newwin(height, width, y, x);
-
-    wattron(mywin, A_REVERSE);
-    //box(mywin, ACS_VLINE, ACS_HLINE);
-    box(mywin, ' ', ' ');
-    wmove(mywin, 0, (width-(int)strlen(msgbx)) / 2);
-    wprintw(mywin, "%s",msgbx);
-    wattroff(mywin, A_REVERSE);
-
-    wmove(mywin, 1, 1);
-    waddstr(mywin, "hello, world!");
-    wmove(mywin, 2, 1);
-    whline(mywin, 0, width-2);
-
-    wmove(mywin, 3, 1);
-    wrefresh(mywin);
-
-    keypad(mywin, TRUE);
-    int ch;
-    while ((ch = wgetch(mywin)) != '\n') {
-        switch (ch) {
-            case KEY_LEFT:
-                if (x) {
-                    redrawwin(stdscr);
-                    mvwin(mywin, y, --x);
-                    refresh();
-                }
-                break;
-            case KEY_RIGHT:
-                if (x+width < COLS) {
-                    wclear(stdscr);
-                    mvwin(mywin, y, ++x);
-                    refresh();
-                }
-                break;
-            case KEY_UP:
-                if (y) {
-                    touchwin(stdscr);
-                    mvwin(mywin, --y, x);
-                    refresh();
-                }
-                break;
-            case KEY_DOWN:
-                if (y+height < LINES) {
-                    redrawwin(stdscr);
-                    mvwin(mywin, ++y, x);
-                    refresh();
-                }
-                break;
-            default:
-                break;
-        }
-    }
-
-    delwin(mywin);
-    endwin();
-}
-#endif
-
 static int dbg_run(void)
 {
 #ifdef USE_GUI
-    draw();
 #endif
 
     logn("Serial Debugger Version %s\n", DBG_VERSION);
@@ -228,11 +148,10 @@ int main(int argc, char **argv)
     // Init main control block
     dbg = (dbg_cb_t *)malloc(sizeof(dbg_cb_t));
     if (dbg == NULL) {
-        loge("Fail to malloc 'dbg_cb_t'\n");
+        loge("Fail to new 'dbg_cb_t'\n");
         return -1;
     }
     dbg->inifile = strdup("./dbg.ini");
-    dbg->run_mode = RUN_MODE_NORMAL;
 
     // Open & parse ini file
     dbg->config = xconfig_new();
@@ -260,16 +179,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    switch (dbg->run_mode) {
-        case RUN_MODE_NORMAL:
-            dbg_run();          // Run the debugger
-            break;
-
-        case RUN_MODE_HELP:
-        case RUN_MODE_VERSION:
-        default:
-            break;
-    }
+    dbg_run();
 
     logd("Debugger exit.\n");
     return 0;

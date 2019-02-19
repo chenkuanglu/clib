@@ -19,27 +19,15 @@ int mux_init(mux_t *mux)
 {
     if (mux == NULL) 
         return -1;
-    pthread_mutexattr_init(&mux->attr);
-    pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE);
-    pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT);
-    pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE);
+    
+    int res = 0;
+    res += pthread_mutexattr_init(&mux->attr);
+    res += pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE);
+    res += pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT);
+    res += pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE);
 
-    return pthread_mutex_init(&mux->mux, &mux->attr);
-}
-
-/**
- * @brief   destroy mutex 
- * @param   mux     mutex to be clean 
- * @return  void
- *
- * do not call this function if a mutex was initialized by INITIALIZER macro! 
- **/
-void mux_clean(mux_t *mux)
-{
-    if (mux) {
-        pthread_mutexattr_destroy(&mux->attr);
-        pthread_mutex_destroy(&mux->mux);
-    }
+    res += pthread_mutex_init(&mux->mux, &mux->attr);
+    return res;
 }
 
 /**
@@ -50,22 +38,28 @@ void mux_clean(mux_t *mux)
 mux_t* mux_new(mux_t **mux)
 {
     mux_t *p = (mux_t *)malloc(sizeof(mux_t));
-    mux_init(p);
+    if (mux_init(p) < 0) {
+        free(p);
+        p = NULL;
+    }
+
     if (mux != NULL)
         *mux = p;
     return p;
 }
 
 /**
- * @brief   destroy mutex & free mutex itself
- * @param   mux     mutex to be delete
+ * @brief   destroy mutex 
+ * @param   mux     mutex to be clean 
  * @return  void
+ *
+ * do not call this function if a mutex was initialized by INITIALIZER macro! 
  **/
-void mux_delete(mux_t *mux)
+void mux_destroy(mux_t *mux)
 {
     if (mux) {
-        mux_clean(mux);
-        free(mux);
+        pthread_mutexattr_destroy(&mux->attr);
+        pthread_mutex_destroy(&mux->mux);
     }
 }
 

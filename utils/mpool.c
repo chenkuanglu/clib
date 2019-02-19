@@ -22,7 +22,7 @@ extern "C" {
  *
  * @return  0 is ok
  *
- * MPOOL_MODE_INIT: mpool been cleaned
+ * MPOOL_MODE_DESTROY: mpool been cleaned
  * mpool not available
  *
  * MPOOL_MODE_MALLOC: data_size = 0
@@ -54,93 +54,19 @@ int mpool_init(mpool_t *mpool, size_t n, size_t data_size)
 
     TAILQ_INIT(&mpool->hdr_free);
     TAILQ_INIT(&mpool->hdr_used);
-    mux_init(&mpool->lock);
     if (n*data_size > 0) {
         mpool->buffer = (char *)malloc(n*MPOOL_BLOCK_SIZE(data_size));
         if (mpool->buffer == NULL) 
             return -1;
         for (size_t i=0; i<n; i++) {
-            TAILQ_INSERT_TAIL(&mpool->hdr_free, 
-                    (mpool_elm_t *)(mpool->buffer + MPOOL_BLOCK_SIZE(data_size)*i), entry);
+            TAILQ_INSERT_TAIL(&mpool->hdr_free, (mpool_elm_t *)(mpool->buffer + MPOOL_BLOCK_SIZE(data_size)*i), entry);
         }
     } else {
         mpool->buffer = NULL;
     }
-
-    return 0;
-}
-
-/**
- * @brief   clean mpool, mpool will be inavailable after clean done,
- *          mpool must be init before using it
- * @param   mpool   mpool to be cleaned
- * @return  void
- *
- * mpool not available including lock/unlock after cleaning!!!
- **/
-void mpool_clean(mpool_t *mpool)
-{
-    if (mpool) {
-        mux_lock(&mpool->lock);
-        if (mpool->mode == MPOOL_MODE_DGROWN) {
-            mpool_elm_t *p;
-            TAILQ_FOREACH(p, &mpool->hdr_free, entry) {
-                TAILQ_REMOVE(&mpool->hdr_free, p, entry);
-                free(p);
-            }
-            TAILQ_FOREACH(p, &mpool->hdr_used, entry) {
-                TAILQ_REMOVE(&mpool->hdr_used, p, entry);
-                free(p);
-            }
-        } 
-
-        TAILQ_INIT(&mpool->hdr_free);
-        TAILQ_INIT(&mpool->hdr_used);
-        if (mpool->mode == MPOOL_MODE_ISTATIC && mpool->buffer){
-            free(mpool->buffer);
-        }
-        mpool->buffer = NULL;
-        mpool->data_size = 0;
-        mpool->mode = MPOOL_MODE_INIT;
-        mux_unlock(&mpool->lock);
-
-        mux_clean(&mpool->lock);
-    }
-}
-
-/**
- * @brief   set mpool buffer, mpool mode will be set to MPOOL_MODE_ESTATIC.
- * @param   mpool       mpool to be set
- *          buf         external buffer
- *          buf_size    buffer size
- *          data_size   max size of user data
- *
- * @return  0 is ok. -1 returned if mpool is in-service.
- *
- * mpool must be empty before mpool_setbuf called, example:
- *      mpool_init(pool, 0, 0);
- *      mpool_setbuf(...);
- **/
-int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
-{
-    if (mpool == NULL || buf == NULL || data_size == 0) {
+    if (mux_init(&mpool->lock) < 0)
         return -1;
-    }
-    mux_lock(&mpool->lock);
-    if ((!TAILQ_EMPTY(&mpool->hdr_used)) 
-        || (!TAILQ_EMPTY(&mpool->hdr_free)) || (!mpool->buffer)) {   /* error, mpool is in-service */
-        mux_unlock(&mpool->lock);
-        return -1;
-    }
-    mpool->buffer = buf;
-    size_t n = buf_size / MPOOL_BLOCK_SIZE(data_size);
-    for (size_t i=0; i<n; i++) {
-        TAILQ_INSERT_TAIL(&mpool->hdr_free, 
-                (mpool_elm_t *)(buf + MPOOL_BLOCK_SIZE(data_size)*i), entry);
-    }
-    mpool->data_size = data_size;
-    mpool->mode = MPOOL_MODE_ESTATIC;
-    mux_unlock(&mpool->lock);
+
     return 0;
 }
 
@@ -163,16 +89,77 @@ mpool_t* mpool_new(size_t n, size_t data_size)
 }
 
 /**
- * @brief   clean & delete mpool itself
- * @param   mpool   mpool to be deleted
+ * @brief   destroy mpool, mpool will be inavailable after clean done,
+ *          mpool must be init before using it
+ * @param   mpool   mpool to be cleaned
  * @return  void
+ *
+ * mpool not available including lock/unlock after destroy!!!
  **/
-void mpool_delete(mpool_t *mpool)
+void mpool_destroy(mpool_t *mpool)
 {
     if (mpool) {
-        mpool_clean(mpool);
-        free(mpool);
+        if (mux_lock(&mpool->lock) < 0)
+            return;
+        if (mpool->mode == MPOOL_MODE_DGROWN) {
+            mpool_elm_t *p;
+            TAILQ_FOREACH(p, &mpool->hdr_free, entry) {
+                TAILQ_REMOVE(&mpool->hdr_free, p, entry);
+                free(p);
+            }
+            TAILQ_FOREACH(p, &mpool->hdr_used, entry) {
+                TAILQ_REMOVE(&mpool->hdr_used, p, entry);
+                free(p);
+            }
+        } 
+
+        TAILQ_INIT(&mpool->hdr_free);
+        TAILQ_INIT(&mpool->hdr_used);
+        if (mpool->mode == MPOOL_MODE_ISTATIC && mpool->buffer){
+            free(mpool->buffer);
+        }
+        mpool->buffer = NULL;
+        mpool->data_size = 0;
+        mpool->mode = MPOOL_MODE_DESTROY;
+        mux_unlock(&mpool->lock);
+
+        mux_destroy(&mpool->lock);
     }
+}
+
+/**
+ * @brief   set mpool buffer, mpool mode will be set to MPOOL_MODE_ESTATIC.
+ * @param   mpool       mpool to be set
+ *          buf         external buffer
+ *          buf_size    buffer size
+ *          data_size   max size of user data
+ *
+ * @return  0 is ok. -1 returned if mpool is in-service.
+ *
+ * mpool must be empty before mpool_setbuf called, example:
+ *      mpool_init(pool, 0, 0);
+ *      mpool_setbuf(...);
+ **/
+int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
+{
+    if (mpool == NULL || buf == NULL || data_size == 0) {
+        return -1;
+    }
+    if (mux_lock(&mpool->lock) < 0)
+        return -1;
+    if ((!TAILQ_EMPTY(&mpool->hdr_used)) || (!TAILQ_EMPTY(&mpool->hdr_free)) || (!mpool->buffer)) {
+        mux_unlock(&mpool->lock);
+        return -1;
+    }
+    mpool->buffer = buf;
+    size_t n = buf_size / MPOOL_BLOCK_SIZE(data_size);
+    for (size_t i=0; i<n; i++) {
+        TAILQ_INSERT_TAIL(&mpool->hdr_free, (mpool_elm_t *)(buf + MPOOL_BLOCK_SIZE(data_size)*i), entry);
+    }
+    mpool->data_size = data_size;
+    mpool->mode = MPOOL_MODE_ESTATIC;
+    mux_unlock(&mpool->lock);
+    return 0;
 }
 
 /**
@@ -187,7 +174,8 @@ void mpool_delete(mpool_t *mpool)
 void* mpool_malloc(mpool_t *mpool, size_t size)
 {
     if (mpool) {
-        mux_lock(&mpool->lock);
+        if (mux_lock(&mpool->lock) < 0)
+            return NULL;
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);
             return malloc(size);
@@ -230,7 +218,8 @@ void* mpool_malloc(mpool_t *mpool, size_t size)
 void  mpool_free(mpool_t *mpool, void *mem)
 {
     if (mpool && mem) {
-        mux_lock(&mpool->lock);
+        if (mux_lock(&mpool->lock) < 0)
+            return;
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);
             free(mem);

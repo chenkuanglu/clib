@@ -282,13 +282,16 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     }
 
     /* data received */
+    if (THRQ_EMPTY(thrq)) {
+        mux_unlock(&thrq->lock);    // critical error !!!
+        return 0;
+    }
     thrq_elm_t *elm = THRQ_FIRST(thrq);
     res = (max_size < elm->len) ? max_size : elm->len;
     memcpy(buf, elm->data, res);
     thrq_remove(thrq, elm);
 
     mux_unlock(&thrq->lock);
-
     return res;
 }
 

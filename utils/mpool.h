@@ -17,7 +17,7 @@ extern "C" {
 #endif 
 
 enum {
-    MPOOL_MODE_INIT = 0,        /* invalid mode */
+    MPOOL_MODE_DESTROY = 0,     /* invalid mode */
     MPOOL_MODE_MALLOC,          /* system malloc, mpool does nothing */
     MPOOL_MODE_DGROWN,          /* dynamic alloc & auto grown & internal buffer is NULL */
     MPOOL_MODE_ISTATIC,         /* internal static memory pool, mpool alloc/free the static buffer */
@@ -44,12 +44,10 @@ struct __mpool {
 #define MPOOL_BLOCK_SIZE(data_size)     (sizeof(mpool_elm_t) + data_size)
 
 extern int          mpool_init          (mpool_t *mpool, size_t n, size_t data_size);
-extern void         mpool_clean         (mpool_t *mpool);
+extern mpool_t*     mpool_new           (size_t n, size_t data_size);
+extern void         mpool_destroy       (mpool_t *mpool);
 
 extern int          mpool_setbuf        (mpool_t *mpool, char *buf, size_t buf_size, size_t data_size);
-
-extern mpool_t*     mpool_new           (size_t n, size_t data_size);
-extern void         mpool_delete        (mpool_t *mpool);
 
 extern void*        mpool_malloc        (mpool_t *mpool, size_t size);
 extern void         mpool_free          (mpool_t *mpool, void *mem);

@@ -1,7 +1,7 @@
 // Debugger 
 
 #include <signal.h>
-#include "thr_queue.h"
+#include "thrq.h"
 #include "xconfig.h"
 #include "argparser.h"
 
@@ -122,7 +122,7 @@ static int dbg_run(void)
 
     logn("Serial Debugger Version %s\n", DBG_VERSION);
 
-    thrq_cb_t *myq = thrq_create(NULL);
+    thrq_cb_t *myq = thrq_new(NULL);
     if (myq == NULL) {
         loge("Fail to create queue\n");
     }

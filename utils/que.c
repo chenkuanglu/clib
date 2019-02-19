@@ -4,7 +4,7 @@
  * @brief   thread safe msg queue
  **/
 
-#include "thr_queue.h"
+#include "que.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ void thrq_set_free(thrq_cb_t *thrq, thrq_destroy_data_t destroy_data)
 int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
 {
     mux_lock(&thrq->lock);
-    mpool_clean(&thrq->mpool);
+    mpool_destroy(&thrq->mpool);
     int res = mpool_init(&thrq->mpool, n, data_size);
     mux_unlock(&thrq->lock);
 
@@ -374,8 +374,8 @@ void thrq_clean(thrq_cb_t *thrq)
         pthread_cond_destroy(&thrq->cond);
         pthread_mutex_destroy(&thrq->cond_lock);
         pthread_condattr_destroy(&thrq->cond_attr);
-        mux_clean(&thrq->lock);
-        mpool_clean(&thrq->mpool);
+        mux_destroy(&thrq->lock);
+        mpool_destroy(&thrq->mpool);
     }
 }
 

@@ -7,7 +7,7 @@
 #ifndef __ARG_PARSER_H__
 #define __ARG_PARSER_H__
 
-#include "thr_queue.h"
+#include "que.h"
 #include "log.h"
 
 #ifdef __cplusplus

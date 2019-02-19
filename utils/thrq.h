@@ -55,12 +55,10 @@ typedef TAILQ_HEAD(__thrq_head, __thrq_elm) thrq_head_t;
 /* thread safe queue control block */
 typedef struct {
     mpool_t             mpool;
-
+    
     thrq_head_t         head;           /* list header */
     mux_t               lock;           /* data lock */
-
     pthread_condattr_t  cond_attr;
-    pthread_mutex_t     cond_lock;      /* condition lock */
     pthread_cond_t      cond;
 
     int                 count;

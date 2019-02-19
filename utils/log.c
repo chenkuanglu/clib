@@ -21,7 +21,7 @@ log_cb_t * const stdlog = &__stdlog;
 int log_prefix_date(FILE *stream)
 {
     if (stream == NULL)
-        return 0;
+        return -1;
 
     struct tm ltm; 
     time_t now = time(NULL); 
@@ -41,7 +41,6 @@ int log_init(log_cb_t *lcb)
 {
     if (lcb == NULL) 
         return -1;
-
     lcb->lock = (pthread_mutex_t)PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
     lcb->stream = NULL;
     lcb->prefix_callback = log_prefix_date;
@@ -65,13 +64,15 @@ log_cb_t* log_new(log_cb_t **lcb)
 /**
  * @brief   lock the log mutex
  * @param   lcb     log control block
- * @return  0 is ok
+ * @return  0 is ok, -1 is error
  **/
 int log_lock(log_cb_t *lcb)
 {
     if (lcb == NULL) 
         return -1;
-    return pthread_mutex_lock(&lcb->lock);
+    if (pthread_mutex_lock(&lcb->lock) != 0)
+        return -1;
+    return 0;
 }
 
 /**
@@ -83,7 +84,9 @@ int log_unlock(log_cb_t *lcb)
 {
     if (lcb == NULL) 
         return -1;
-    return pthread_mutex_unlock(&lcb->lock);
+    if (pthread_mutex_unlock(&lcb->lock) != 0)
+        return -1;
+    return 0;
 }
 
 /**
@@ -96,7 +99,8 @@ int log_set_stream(log_cb_t *lcb, FILE *stream)
 {
     if (lcb == NULL || stream == NULL)
         return -1;
-    log_lock(lcb);
+    if (log_lock(lcb) != 0)
+        return -1;
     lcb->stream = stream;
     log_unlock(lcb);
     return 0;
@@ -112,7 +116,8 @@ int log_set_prefix(log_cb_t *lcb, log_prefix_t prefix)
 {
     if (lcb == NULL)
         return -1;
-    log_lock(lcb);
+    if (log_lock(lcb) != 0)
+        return -1;
     lcb->prefix_callback = prefix;
     log_unlock(lcb);
     return 0;
@@ -129,9 +134,10 @@ int log_set_prefix(log_cb_t *lcb, log_prefix_t prefix)
 int log_vfprintf(log_cb_t *lcb, const char *format, va_list param)
 {
     if (lcb == NULL || format == NULL)
-        return 0;
+        return -1;
 
-    log_lock(lcb);
+    if (log_lock(lcb) != 0)
+        return -1;
     int num = 0;
     FILE *s = lcb->stream;
     if (lcb->stream == NULL)

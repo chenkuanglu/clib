@@ -35,20 +35,18 @@ int thrq_init(thrq_cb_t *thrq)
 
     TAILQ_INIT(&thrq->head);
 
-    int res = 0;
-    res += mux_init(&thrq->lock);
-    res += pthread_mutex_init(&thrq->cond_lock, 0);
+    if (mux_init(&thrq->lock) != 0) return -1;
 
-    res += pthread_condattr_init(&thrq->cond_attr);
-    res += pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC);
-    res += pthread_cond_init(&thrq->cond, &thrq->cond_attr);
+    if (pthread_condattr_init(&thrq->cond_attr) != 0) return -1;
+    if (pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC) != 0) return -1;
+    if (pthread_cond_init(&thrq->cond, &thrq->cond_attr) != 0) return -1;
 
     thrq->count     = 0;
     thrq->max_size  = THRQ_MAX_SIZE_DEFAULT;
 
-    res += mpool_init(&thrq->mpool, 0, 0);
-
-    return res;
+    if (mpool_init(&thrq->mpool, 0, 0) != 0)
+        return -1;
+    return 0;
 }
 
 /**
@@ -107,15 +105,10 @@ static int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 void thrq_destroy(thrq_cb_t *thrq)
 {
     if (thrq) {
-        if (pthread_mutex_lock(&thrq->cond_lock) < 0)
+        if (mux_lock(&thrq->lock) != 0)
             return;
         pthread_cond_destroy(&thrq->cond);
         pthread_condattr_destroy(&thrq->cond_attr);
-        pthread_mutex_unlock(&thrq->cond_lock);
-        pthread_mutex_destroy(&thrq->cond_lock);
-
-        if (mux_lock(&thrq->lock) < 0)
-            return;
         while (!THRQ_EMPTY(thrq)) {
             thrq_remove(thrq, THRQ_FIRST(thrq));
         }    
@@ -139,10 +132,12 @@ int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
     if (mux_lock(&thrq->lock) < 0)
         return -1;
     mpool_destroy(&thrq->mpool);
-    int res = mpool_init(&thrq->mpool, n, data_size);
+    if (mpool_init(&thrq->mpool, n, data_size) < 0) {
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
     mux_unlock(&thrq->lock);
-
-    return res;
+    return 0;
 }
 
 /**
@@ -184,7 +179,7 @@ int thrq_empty(thrq_cb_t *thrq)
 int thrq_count(thrq_cb_t *thrq)
 {
     if (mux_lock(&thrq->lock) < 0)
-        return 0;
+        return -1;
     int count = thrq->count;
     mux_unlock(&thrq->lock);
 
@@ -238,11 +233,11 @@ static int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
  **/
 int thrq_send(thrq_cb_t *thrq, void *data, int len)
 {
-    if (pthread_mutex_lock(&thrq->cond_lock) < 0)
+    if (mux_lock(&thrq->lock) < 0)
         return -1;
     int res = thrq_insert_tail(thrq, data, len);
     pthread_cond_signal(&thrq->cond);
-    pthread_mutex_unlock(&thrq->cond_lock);
+    mux_unlock(&thrq->lock);
     return res;
 }
 
@@ -253,7 +248,7 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
  *          max_size    buf size
  *          timeout     thread block time, 0 is block until signal received
  *
- * @return  0 is ok, -res is error.
+ * @return  0 is ok, -VALUE is error.
  * 
  *  function returns when error occured or data received,
  *  -ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno.h>)
@@ -270,34 +265,29 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
         ts.tv_nsec = ts.tv_nsec % 1000000000L;
     }
 
-    if ((res = pthread_mutex_lock(&thrq->cond_lock)) < 0)
-        return -res;
+    if (mux_lock(&thrq->lock) != 0)
+        return -1;
 
     /* break when error occured or data receive */
-    while (res == 0 && thrq_count(thrq) <= 0) {
+    while (res == 0 && thrq->count == 0) {
         if (timeout > 0) {
-            res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
+            res = pthread_cond_timedwait(&thrq->cond, &thrq->lock.mux, &ts);
         } else {
-            res = pthread_cond_wait(&thrq->cond, &thrq->cond_lock);
+            res = pthread_cond_wait(&thrq->cond, &thrq->lock.mux);
         }
     }
     if (res != 0) {
-        pthread_mutex_unlock(&thrq->cond_lock);
-        return -res;
+        mux_unlock(&thrq->lock);
+        return -res;    // -ETIMEDOUT
     }
 
     /* data received */
-    if ((res = mux_lock(&thrq->lock)) < 0) {
-        pthread_mutex_unlock(&thrq->cond_lock);
-        return -res;
-    }
     thrq_elm_t *elm = THRQ_FIRST(thrq);
     res = (max_size < elm->len) ? max_size : elm->len;
     memcpy(buf, elm->data, res);
     thrq_remove(thrq, elm);
-    mux_unlock(&thrq->lock);
 
-    pthread_mutex_unlock(&thrq->cond_lock);
+    mux_unlock(&thrq->lock);
 
     return res;
 }

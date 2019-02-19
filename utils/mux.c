@@ -20,14 +20,13 @@ int mux_init(mux_t *mux)
     if (mux == NULL) 
         return -1;
     
-    int res = 0;
-    res += pthread_mutexattr_init(&mux->attr);
-    res += pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE);
-    res += pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT);
-    res += pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE);
+    if (pthread_mutexattr_init(&mux->attr) != 0) return -1;
+    if (pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE) != 0) return -1;
+    if (pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT) != 0) return -1;
+    if (pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE) != 0) return -1;
 
-    res += pthread_mutex_init(&mux->mux, &mux->attr);
-    return res;
+    if (pthread_mutex_init(&mux->mux, &mux->attr) != 0) return -1;
+    return 0;
 }
 
 /**
@@ -70,7 +69,9 @@ void mux_destroy(mux_t *mux)
  **/
 int mux_lock(mux_t *mux)
 {
-    return pthread_mutex_lock(&mux->mux);
+    if (pthread_mutex_lock(&mux->mux) != 0)
+        return -1;
+    return 0;
 }
 
 /**
@@ -80,7 +81,9 @@ int mux_lock(mux_t *mux)
  **/
 int mux_unlock(mux_t *mux)
 {
-    return pthread_mutex_unlock(&mux->mux);
+    if (pthread_mutex_unlock(&mux->mux) != 0)
+        return -1;
+    return 0;
 }
 
 #ifdef __cplusplus

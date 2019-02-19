@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include "mux.h"
 
 mux_t mux;
@@ -26,6 +28,8 @@ void* fn(void *arg)
 int main()
 {
     mux_init(&mux);
+
+    printf("-1 is: %s\n", strerror(-1));
 
     // lock 2 times
     if (mux_lock(&mux) != 0) {

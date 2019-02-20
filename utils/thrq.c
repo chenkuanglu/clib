@@ -235,10 +235,16 @@ int thrq_send(thrq_cb_t *thrq, void *data, int len)
 {
     if (mux_lock(&thrq->lock) < 0)
         return -1;
-    int res = thrq_insert_tail(thrq, data, len);
-    pthread_cond_signal(&thrq->cond);
+    if (thrq_insert_tail(thrq, data, len) != 0) {
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
+    if (pthread_cond_signal(&thrq->cond) != 0) {
+        mux_unlock(&thrq->lock);
+        return -1;
+    }
     mux_unlock(&thrq->lock);
-    return res;
+    return 0;
 }
 
 /**
@@ -284,7 +290,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
     /* data received */
     if (THRQ_EMPTY(thrq)) {
         mux_unlock(&thrq->lock);    // critical error !!!
-        return 0;
+        return -1;
     }
     thrq_elm_t *elm = THRQ_FIRST(thrq);
     res = (max_size < elm->len) ? max_size : elm->len;

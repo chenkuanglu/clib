@@ -1,14 +1,13 @@
 /**
- * @file    thr_queue.h
+ * @file    que.h
  * @author  ln
- * @brief   thread safe msg queue
+ * @brief   queue or list
  **/
 
-#ifndef __THR_QUEUE__
-#define __THR_QUEUE__
+#ifndef __QUEUE__
+#define __QUEUE__
 
 #include <errno.h>
-#include <sys/queue.h>
 #include <pthread.h>
 #include "mpool.h"
 #include "mux.h"
@@ -60,11 +59,6 @@ typedef struct {
 
     thrq_head_t         head;           /* list header */
     mux_t               lock;           /* data lock */
-
-    pthread_condattr_t  cond_attr;
-    pthread_mutex_t     cond_lock;      /* condition lock */
-    pthread_cond_t      cond;
-
     int                 count;
     int                 max_size;
 

@@ -398,6 +398,11 @@ void thrq_destroy(thrq_cb_t *thrq)
  *          elm     the elment to be removed
  *
  * @return  0 is ok
+ *
+ * lock
+ * release dataptr
+ * remove
+ * unlock
  **/
 int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 {

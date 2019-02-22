@@ -1,16 +1,9 @@
 /**
  * @file    popen_p.c
  * @author  ln
- * @brief   popen likely, and return the pid of sub-process
+ * @brief   popen likely, return the pid of child process & pipe stream
  **/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <zconf.h>
-#include <errno.h>
-#include <sys/wait.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include "popen_p.h"
 
 #ifdef __cplusplus
@@ -20,12 +13,12 @@ extern "C" {
 static const char * const shell_path = "/bin/sh";
 
 /**
- * @brief   popen likely, and return the pid of sub-process
+ * @brief   popen likely, return the pid of child process & pipe stream
  * @param   cmd     shell command string
  *          type    "r" or "w"
  *          fpid    file stream & pid
  *
- * @return  0 is ok
+ * @return  return 0 on success. otherwise, -1 is returned on error and errno is set.
  *
  * 'fpid' is not invalid while return value is not 0.
  * errno is set if fail
@@ -42,7 +35,7 @@ int popen_p(const char *cmd, const char *type, fpid_t *fpid)
     }
 
     if (pipe(pfd) < 0) {
-        return -1;                // errno set by pipe()
+        return -1;                  // errno set by pipe()
     }
 
     if (type[0] == 'r') {
@@ -89,7 +82,7 @@ int popen_p(const char *cmd, const char *type, fpid_t *fpid)
 /**
  * @brief   for popen_p
  * @param   fpid    file stream & pid
- * @return  -1 if error, otherwise the child process exit code(0 is ok).
+ * @return  -1 if error, otherwise the child process exit code(0 is ok) is returned.
  **/
 int pclose_p(fpid_t *fpid) 
 {

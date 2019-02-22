@@ -30,16 +30,19 @@ extern "C" {
  **/
 int thrq_init(thrq_cb_t *thrq)
 {
-    if (thrq == NULL)
+    if (thrq == NULL) {
+        errno = EINVAL;
         return -1;
+    }
 
     TAILQ_INIT(&thrq->head);
-
-    if (mux_init(&thrq->lock) != 0) return -1;
-
-    if (pthread_condattr_init(&thrq->cond_attr) != 0) return -1;
-    if (pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC) != 0) return -1;
-    if (pthread_cond_init(&thrq->cond, &thrq->cond_attr) != 0) return -1;
+    if (mux_init(&thrq->lock) != 0) 
+        return -1;
+    pthread_condattr_init(&thrq->cond_attr);
+    if ((errno = pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC)) != 0) 
+        return -1;
+    if ((errno = pthread_cond_init(&thrq->cond, &thrq->cond_attr) != 0)) 
+        return -1;
 
     thrq->count     = 0;
     thrq->max_size  = THRQ_MAX_SIZE_DEFAULT;
@@ -80,7 +83,7 @@ thrq_cb_t* thrq_new(thrq_cb_t **thrq)
  * @param   thrq    ponter to the queue
  *          elm     the elment to be removed
  *
- * @return  0 is ok
+ * @return  0 is ok. 0 is also returned if thrq or elm is NULL.
  **/
 static int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
 {
@@ -132,7 +135,7 @@ int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
     if (mux_lock(&thrq->lock) < 0)
         return -1;
     mpool_destroy(&thrq->mpool);
-    if (mpool_init(&thrq->mpool, n, data_size) < 0) {
+    if (mpool_init(&thrq->mpool, n, data_size) != 0) {
         mux_unlock(&thrq->lock);
         return -1;
     }
@@ -196,21 +199,25 @@ int thrq_count(thrq_cb_t *thrq)
  **/
 static int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
 {
-    if (data == 0 || len == 0)
+    if (data == 0 || len == 0) {
+        errno = EINVAL;
         return -1;
+    }
 
     /* queue is full */
     if (mux_lock(&thrq->lock) < 0)
         return -1;
 
-    if (thrq->count >= thrq->max_size) {        
+    if (thrq->count >= thrq->max_size) {
         mux_unlock(&thrq->lock);
+        errno = EAGAIN;
         return -1;
     }
 
     thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
     if (elm == 0) {
         mux_unlock(&thrq->lock);
+        errno = ENOMEM;
         return -1;
     }
     memcpy(elm->data, data, len);
@@ -283,8 +290,10 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
         }
     }
     if (res != 0) {
+        const int err = errno;
         mux_unlock(&thrq->lock);
-        return -res;    // -ETIMEDOUT
+        errno = err;
+        return -1;    // errno may be ETIMEDOUT
     }
 
     /* data received */

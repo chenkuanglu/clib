@@ -102,12 +102,17 @@ int bin2hex(char *hex, const void *bin, unsigned len)
  **/
 char* abin2hex(const void *bin, unsigned len)
 {
-    if (bin == NULL || len == 0) 
+    if (bin == NULL || len == 0) {
+        errno = EINVAL;
         return NULL;
+    }
 
     char *s = (char*)malloc((len * 2) + 1);
     if (s != NULL) {
         bin2hex(s, bin, len);
+    } else {
+        errno = ENOMEM;
+        return NULL;
     }
     return s;
 }
@@ -157,13 +162,18 @@ int hex2bin(void *bin, const char *hex, unsigned len)
  **/
 void * ahex2bin(const char *hex)
 {
-    if (hex == NULL) 
+    if (hex == NULL) {
+        errno = EINVAL;
         return NULL;
+    }
 
     unsigned len = strlen(hex);
     unsigned char *b = (unsigned char*)malloc(len/2 + 1);
     if (b != NULL) {
         hex2bin(b, hex, len/2 + 1);
+    } else {
+        errno = ENOMEM;
+        return NULL;
     }
     return (void *)b;
 }

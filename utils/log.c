@@ -20,8 +20,10 @@ log_cb_t * const stdlog = &__stdlog;
  **/
 int log_prefix_date(FILE *stream)
 {
-    if (stream == NULL)
+    if (stream == NULL) {
+        errno = EINVAL;
         return -1;
+    }
 
     struct tm ltm; 
     time_t now = time(NULL); 
@@ -39,8 +41,10 @@ int log_prefix_date(FILE *stream)
  **/
 int log_init(log_cb_t *lcb)
 {
-    if (lcb == NULL) 
+    if (lcb == NULL) {
+        errno = EINVAL;
         return -1;
+    }
     lcb->lock = (pthread_mutex_t)PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
     lcb->stream = NULL;
     lcb->prefix_callback = log_prefix_date;
@@ -68,9 +72,11 @@ log_cb_t* log_new(log_cb_t **lcb)
  **/
 int log_lock(log_cb_t *lcb)
 {
-    if (lcb == NULL) 
+    if (lcb == NULL) {
+        errno = EINVAL;
         return -1;
-    if (pthread_mutex_lock(&lcb->lock) != 0)
+    }
+    if ((errno = pthread_mutex_lock(&lcb->lock)) != 0)
         return -1;
     return 0;
 }
@@ -82,9 +88,11 @@ int log_lock(log_cb_t *lcb)
  **/
 int log_unlock(log_cb_t *lcb)
 {
-    if (lcb == NULL) 
+    if (lcb == NULL) {
+        errno = EINVAL;
         return -1;
-    if (pthread_mutex_unlock(&lcb->lock) != 0)
+    }
+    if ((errno = pthread_mutex_unlock(&lcb->lock)) != 0)
         return -1;
     return 0;
 }
@@ -97,8 +105,10 @@ int log_unlock(log_cb_t *lcb)
  **/
 int log_set_stream(log_cb_t *lcb, FILE *stream)
 {
-    if (lcb == NULL || stream == NULL)
+    if (lcb == NULL || stream == NULL) {
+        errno = EINVAL;
         return -1;
+    }
     if (log_lock(lcb) != 0)
         return -1;
     lcb->stream = stream;
@@ -133,8 +143,10 @@ int log_set_prefix(log_cb_t *lcb, log_prefix_t prefix)
  **/
 int log_vfprintf(log_cb_t *lcb, const char *format, va_list param)
 {
-    if (lcb == NULL || format == NULL)
+    if (lcb == NULL || format == NULL) {
+        errno = EINVAL;
         return -1;
+    }
 
     if (log_lock(lcb) != 0)
         return -1;

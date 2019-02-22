@@ -5,6 +5,7 @@
  **/
 
 #include "mux.h"
+#include <errno.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,31 +14,37 @@ extern "C" {
 /**
  * @brief   init mutex, inner process & recursive
  * @param   mutex to be init
- * @return  0 is sucess
+ * @return  return 0 on success. otherwise, -1 is returned on error and errno is set.
  **/
 int mux_init(mux_t *mux)
 {
-    if (mux == NULL) 
+    if (mux == NULL) {
+        errno = EINVAL;
         return -1;
+    }
     
-    if (pthread_mutexattr_init(&mux->attr) != 0) return -1;
-    if (pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE) != 0) return -1;
-    if (pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT) != 0) return -1;
-    if (pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE) != 0) return -1;
+    pthread_mutexattr_init(&mux->attr);
+    if ((errno = pthread_mutexattr_setpshared(&mux->attr, PTHREAD_PROCESS_PRIVATE)) != 0) 
+        return -1;
+    if ((errno = pthread_mutexattr_setprotocol(&mux->attr, PTHREAD_PRIO_INHERIT)) != 0) 
+        return -1;
+    if ((errno = pthread_mutexattr_settype(&mux->attr, PTHREAD_MUTEX_RECURSIVE)) != 0) 
+        return -1;
 
-    if (pthread_mutex_init(&mux->mux, &mux->attr) != 0) return -1;
+    pthread_mutex_init(&mux->mux, &mux->attr);
     return 0;
 }
 
 /**
  * @brief   malloc & init mutex, inner process & recursive
  * @param   mux     pointer to your mutex pointer
- * @return  pointer to the mutex created
+ * @return  return a pointer to the mutex created.
+ *          upon error, NULL is returned and errno is set
  **/
 mux_t* mux_new(mux_t **mux)
 {
     mux_t *p = (mux_t *)malloc(sizeof(mux_t));
-    if (mux_init(p) < 0) {
+    if (p && (mux_init(p) < 0)) {
         free(p);
         p = NULL;
     }
@@ -65,11 +72,11 @@ void mux_destroy(mux_t *mux)
 /**
  * @brief   lock
  * @param   mutex to be lock
- * @return  0 is sucess
+ * @return  return 0 on success. otherwise, -1 is returned on error and errno is set.
  **/
 int mux_lock(mux_t *mux)
 {
-    if (pthread_mutex_lock(&mux->mux) != 0)
+    if ((errno = pthread_mutex_lock(&mux->mux)) != 0)
         return -1;
     return 0;
 }
@@ -77,11 +84,11 @@ int mux_lock(mux_t *mux)
 /**
  * @brief   unlock
  * @param   mutex to be unlock
- * @return  0 is sucess
+ * @return  return 0 on success. otherwise, -1 is returned on error and errno is set.
  **/
 int mux_unlock(mux_t *mux)
 {
-    if (pthread_mutex_unlock(&mux->mux) != 0)
+    if ((errno = pthread_mutex_unlock(&mux->mux)) != 0)
         return -1;
     return 0;
 }

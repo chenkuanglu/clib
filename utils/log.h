@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "cstr.h"
 

@@ -10,6 +10,7 @@
 #include <sys/queue.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "mux.h"
 
 #ifdef __cplusplus
@@ -45,7 +46,7 @@ struct __mpool {
 
 extern int          mpool_init          (mpool_t *mpool, size_t n, size_t data_size);
 extern mpool_t*     mpool_new           (size_t n, size_t data_size);
-extern void         mpool_destroy       (mpool_t *mpool);
+extern int          mpool_destroy       (mpool_t *mpool);
 
 extern int          mpool_setbuf        (mpool_t *mpool, char *buf, size_t buf_size, size_t data_size);
 

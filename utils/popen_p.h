@@ -1,7 +1,7 @@
 /**
  * @file    popen_p.h
  * @author  ln
- * @brief   popen likely, and return the pid of sub-process
+ * @brief   popen likely, return the pid of child process & pipe stream
  **/
 
 #ifndef __POPEN_P_H__
@@ -9,6 +9,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <zconf.h>
+#include <errno.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,8 +24,8 @@ typedef struct {
     pid_t pid;
 } fpid_t;
 
-extern int popen_p(const char *cmd, const char *type, fpid_t *fpid);
-extern int pclose_p(fpid_t *fpid);
+extern int popen_p  (const char *cmd, const char *type, fpid_t *fpid);
+extern int pclose_p (fpid_t *fpid);
 
 #ifdef __cplusplus
 }

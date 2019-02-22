@@ -39,8 +39,10 @@ extern "C" {
  **/
 int mpool_init(mpool_t *mpool, size_t n, size_t data_size)
 {
-    if (mpool == NULL)
+    if (mpool == NULL) {
+        errno = EINVAL;
         return -1;
+    }
 
     if (data_size == 0) {
         mpool->mode = MPOOL_MODE_MALLOC;
@@ -64,7 +66,7 @@ int mpool_init(mpool_t *mpool, size_t n, size_t data_size)
     } else {
         mpool->buffer = NULL;
     }
-    if (mux_init(&mpool->lock) < 0)
+    if (mux_init(&mpool->lock) != 0)
         return -1;
 
     return 0;
@@ -81,7 +83,7 @@ mpool_t* mpool_new(size_t n, size_t data_size)
 {
     mpool_t *mp = (mpool_t *)malloc(sizeof(mpool_t));
     int ret = mpool_init(mp, n, data_size);
-    if (ret < 0 && mp) {
+    if (mp && (ret != 0)) {
         free(mp);
         mp = NULL;
     }
@@ -92,39 +94,42 @@ mpool_t* mpool_new(size_t n, size_t data_size)
  * @brief   destroy mpool, mpool will be inavailable after clean done,
  *          mpool must be init before using it
  * @param   mpool   mpool to be cleaned
- * @return  void
+ * @return  0 is ok
  *
  * mpool not available including lock/unlock after destroy!!!
  **/
-void mpool_destroy(mpool_t *mpool)
+int mpool_destroy(mpool_t *mpool)
 {
-    if (mpool) {
-        if (mux_lock(&mpool->lock) < 0)
-            return;
-        if (mpool->mode == MPOOL_MODE_DGROWN) {
-            mpool_elm_t *p;
-            TAILQ_FOREACH(p, &mpool->hdr_free, entry) {
-                TAILQ_REMOVE(&mpool->hdr_free, p, entry);
-                free(p);
-            }
-            TAILQ_FOREACH(p, &mpool->hdr_used, entry) {
-                TAILQ_REMOVE(&mpool->hdr_used, p, entry);
-                free(p);
-            }
-        } 
-
-        TAILQ_INIT(&mpool->hdr_free);
-        TAILQ_INIT(&mpool->hdr_used);
-        if (mpool->mode == MPOOL_MODE_ISTATIC && mpool->buffer){
-            free(mpool->buffer);
-        }
-        mpool->buffer = NULL;
-        mpool->data_size = 0;
-        mpool->mode = MPOOL_MODE_DESTROY;
-        mux_unlock(&mpool->lock);
-
-        mux_destroy(&mpool->lock);
+    if (mpool == NULL) {
+        errno = EINVAL;
+        return -1;
     }
+    if (mux_lock(&mpool->lock) != 0)
+        return -1;
+    if (mpool->mode == MPOOL_MODE_DGROWN) {
+        mpool_elm_t *p;
+        TAILQ_FOREACH(p, &mpool->hdr_free, entry) {
+            TAILQ_REMOVE(&mpool->hdr_free, p, entry);
+            free(p);
+        }
+        TAILQ_FOREACH(p, &mpool->hdr_used, entry) {
+            TAILQ_REMOVE(&mpool->hdr_used, p, entry);
+            free(p);
+        }
+    } 
+
+    TAILQ_INIT(&mpool->hdr_free);
+    TAILQ_INIT(&mpool->hdr_used);
+    if (mpool->mode == MPOOL_MODE_ISTATIC && mpool->buffer){
+        free(mpool->buffer);
+    }
+    mpool->buffer = NULL;
+    mpool->data_size = 0;
+    mpool->mode = MPOOL_MODE_DESTROY;
+    mux_unlock(&mpool->lock);
+
+    mux_destroy(&mpool->lock);
+    return 0;
 }
 
 /**
@@ -143,12 +148,14 @@ void mpool_destroy(mpool_t *mpool)
 int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
 {
     if (mpool == NULL || buf == NULL || data_size == 0) {
+        errno = EINVAL;
         return -1;
     }
-    if (mux_lock(&mpool->lock) < 0)
+    if (mux_lock(&mpool->lock) != 0)
         return -1;
     if ((!TAILQ_EMPTY(&mpool->hdr_used)) || (!TAILQ_EMPTY(&mpool->hdr_free)) || (!mpool->buffer)) {
         mux_unlock(&mpool->lock);
+        errno = EBUSY;
         return -1;
     }
     mpool->buffer = buf;
@@ -173,37 +180,43 @@ int mpool_setbuf(mpool_t *mpool, char *buf, size_t buf_size, size_t data_size)
  **/
 void* mpool_malloc(mpool_t *mpool, size_t size)
 {
-    if (mpool) {
-        if (mux_lock(&mpool->lock) < 0)
-            return NULL;
-        if (mpool->mode == MPOOL_MODE_MALLOC) {
-            mux_unlock(&mpool->lock);
-            return malloc(size);
-        }
+    if (mpool == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
 
-        if (size <= mpool->data_size) {
-            if (!TAILQ_EMPTY(&mpool->hdr_free)) {
-                mpool_elm_t *p = TAILQ_FIRST(&mpool->hdr_free);
+    if (mux_lock(&mpool->lock) != 0)
+        return NULL;
+    if (mpool->mode == MPOOL_MODE_MALLOC) {
+        mux_unlock(&mpool->lock);
+        return malloc(size);
+    }
+
+    if (size <= mpool->data_size) {
+        if (!TAILQ_EMPTY(&mpool->hdr_free)) {
+            mpool_elm_t *p = TAILQ_FIRST(&mpool->hdr_free);
+            TAILQ_REMOVE(&mpool->hdr_free, p, entry);
+            TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
+            mux_unlock(&mpool->lock);
+            return p->data;
+        } else {
+            if (mpool->mode == MPOOL_MODE_DGROWN) {
+                mpool_elm_t *p = (mpool_elm_t *)malloc(MPOOL_BLOCK_SIZE(mpool->data_size));
                 if (p) {
-                    TAILQ_REMOVE(&mpool->hdr_free, p, entry);
                     TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
                     mux_unlock(&mpool->lock);
                     return p->data;
                 }
-            } else {
-                if (mpool->mode == MPOOL_MODE_DGROWN) {
-                    mpool_elm_t *p = (mpool_elm_t *)malloc(MPOOL_BLOCK_SIZE(mpool->data_size));
-                    if (p) {
-                        TAILQ_INSERT_TAIL(&mpool->hdr_used, p, entry);
-                        mux_unlock(&mpool->lock);
-                        return p->data;
-                    }
-                }
-            }
+            } 
+            mux_unlock(&mpool->lock);
+            errno = ENOMEM;
+            return NULL;
         }
+    } else {
         mux_unlock(&mpool->lock);
+        errno = ENOMEM;
+        return NULL;
     }
-    return NULL;
 }
 
 /**
@@ -215,10 +228,10 @@ void* mpool_malloc(mpool_t *mpool, size_t size)
  *
  * block = block_head + block_data, head for mpool managerment & data for user
  **/
-void  mpool_free(mpool_t *mpool, void *mem)
+void mpool_free(mpool_t *mpool, void *mem)
 {
     if (mpool && mem) {
-        if (mux_lock(&mpool->lock) < 0)
+        if (mux_lock(&mpool->lock) != 0)
             return;
         if (mpool->mode == MPOOL_MODE_MALLOC) {
             mux_unlock(&mpool->lock);

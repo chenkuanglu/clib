@@ -95,6 +95,7 @@ typedef struct {
 #define que_lock(que)          mux_lock(&que->lock)
 #define que_unlock(que)        mux_unlock(&que->lock)
 
+/* thread safe */
 extern int          que_init            (que_cb_t *que);
 extern que_cb_t*    que_new             (que_cb_t **que);
 extern void         que_destroy         (que_cb_t *que);
@@ -111,8 +112,6 @@ extern int          que_insert_tail     (que_cb_t *que, void *data, int len);
 /* not thread safe */
 extern que_elm_t*   QUE_FIND            (que_cb_t *que, void *data, int len, que_cmp_data_t pfn_cmp);
 extern int          QUE_REMOVE          (que_cb_t *que, que_elm_t *elm);
-
-/* not thread safe */
 extern int          QUE_INSERT_AFTER    (que_cb_t *que, que_elm_t *elm, void *data, int len);
 extern int          QUE_INSERT_BEFORE   (que_cb_t *que, que_elm_t *elm, void *data, int len);
 

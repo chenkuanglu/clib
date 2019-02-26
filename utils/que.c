@@ -323,7 +323,7 @@ void que_destroy(que_cb_t *que)
  * remove
  * unlock
  **/
-int que_remove(que_cb_t *que, que_elm_t *elm)
+int QUE_REMOVE(que_cb_t *que, que_elm_t *elm)
 {
     if (que != 0 && elm != 0) {
         if (mux_lock(&que->lock) != 0)

@@ -17,7 +17,7 @@ extern "C" {
 typedef struct {
     int         argc;
     char**      argv;
-    thrq_cb_t*  arg_names;
+    que_cb_t*   arg_names;
 } argparser_t;
 
 typedef int (*parse_callback_t)(long id, char **param, int num);

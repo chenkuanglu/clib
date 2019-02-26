@@ -131,7 +131,9 @@ static int dbg_run(void)
     char *buf[32];
     for (;;) {
         int ret = thrq_receive(myq, &buf, sizeof(buf), tmout);
-        if (ret == ETIMEDOUT) {
+        if (ret >= 0) {
+            logn("get data\n", tmout);
+        } else if (ret < 0 && errno == ETIMEDOUT) {
             logw("%.2fs timeout...\n", tmout);
         } else {
             loge("error occured: %s\n", strerror(errno));

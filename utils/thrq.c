@@ -290,7 +290,7 @@ int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
         }
     }
     if (res != 0) {
-        const int err = errno;
+        const int err = res;
         mux_unlock(&thrq->lock);
         errno = err;
         return -1;    // errno may be ETIMEDOUT

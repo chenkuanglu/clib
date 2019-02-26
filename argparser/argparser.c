@@ -39,9 +39,8 @@ argparser_t* argparser_new(int argc, char **argv)
 
     argparser_t* p = (argparser_t *)malloc(sizeof(argparser_t));
     if (p != NULL) {
-        p->arg_names = thrq_create(NULL);
+        p->arg_names = que_new(NULL);
         if (p->arg_names != NULL) {
-            thrq_set_compare(p->arg_names, argcmp);
             p->argc = argc;
             p->argv = argv;
             return p;
@@ -56,7 +55,7 @@ void argparser_delete(argparser_t* parser)
 {
     if (parser != NULL) {
         if (parser->arg_names != NULL) {
-            thrq_destroy(parser->arg_names);
+            que_destroy(parser->arg_names);
         }
         free(parser);
     }
@@ -77,10 +76,12 @@ void argparser_add(argparser_t *parser, const char* arg_name, long arg_id, int p
     strcpy(arg.name, arg_name);
     arg.id = arg_id;
     arg.n = param_num;
-    if (thrq_find(parser->arg_names, &arg, sizeof(argparser_args_t)) == NULL) {
-        if (thrq_append(parser->arg_names, &arg, sizeof(argparser_args_t)) < 0)
+    que_lock(parser->arg_names);
+    if (QUE_FIND(parser->arg_names, &arg, sizeof(argparser_args_t),argcmp ) == NULL) {
+        if (que_insert_tail(parser->arg_names, &arg, sizeof(argparser_args_t)) < 0)
             loge("argparser: Fail to add, cannot insert queue\n");
     }
+    que_unlock(parser->arg_names);
 }
 
 int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
@@ -96,9 +97,9 @@ int argparser_parse(argparser_t *parser, parse_callback_t parse_proc)
     int c = parser->argc - 1;
     char **v = parser->argv + 1;
     while (c > 0) {
-        thrq_elm_t *var;
+        que_elm_t *var;
         argparser_args_t *arg;
-        THRQ_FOREACH(var, parser->arg_names) {
+        QUE_FOREACH(var, parser->arg_names) {
             arg = (argparser_args_t *)var->data;
             if ((found = strcmp(*v, arg->name)) == 0) { 
                 if (c - 1 < arg->n) {

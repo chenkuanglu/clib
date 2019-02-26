@@ -100,7 +100,7 @@ extern int          que_init            (que_cb_t *que);
 extern que_cb_t*    que_new             (que_cb_t **que);
 extern void         que_destroy         (que_cb_t *que);
 
-extern void         que_set_maxsize     (que_cb_t *que, int max_size);
+extern int          que_set_maxsize     (que_cb_t *que, int max_size);
 extern int          que_set_mpool       (que_cb_t *que, size_t n, size_t data_size);
 
 extern int          que_empty           (que_cb_t *que);

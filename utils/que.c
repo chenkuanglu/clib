@@ -20,381 +20,300 @@ extern "C" {
 #endif
 
 /**
- * @brief   init thrq control block
- * @param   thrq        queue to be init
+ * @brief   init que control block
+ * @param   que        queue to be init
  *
  * @return  0 is ok
  **/
-int thrq_init(thrq_cb_t *thrq)
+int que_init(que_cb_t *que)
 {
-    TAILQ_INIT(&thrq->head);
-
-    mux_init(&thrq->lock);
-    pthread_mutex_init(&thrq->cond_lock, 0);
-
-    pthread_condattr_init(&thrq->cond_attr);
-    pthread_condattr_setclock(&thrq->cond_attr, CLOCK_MONOTONIC);
-    pthread_cond_init(&thrq->cond, &thrq->cond_attr);
-
-    thrq->count         = 0;
-    thrq->destroy_data  = 0;
-    thrq->copy_data     = memcpy;
-    thrq->cmp_elm       = memcmp;
-    thrq->max_size      = THRQ_MAX_SIZE_DEF;
-
-    mpool_init(&thrq->mpool, 0, 0);
+    if (que == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+    TAILQ_INIT(&que->head);
+    mux_init(&que->lock);
+    que->count      = 0;
+    que->max_size   = QUE_MAX_SIZE_DEFAULT;
+    if (mpool_init(&que->mpool, 0, 0) != 0)
+        return -1;
 
     return 0;
 }
 
 /**
- * @brief   set a function to free user data if neccessary
- * @param   thrq            queue
- *          destroy_data    func to destroy user data(elm->data), but not free the pointer of elm->data 
+ * @brief   create que
+ * @param   que    ponter to the queue-pointer
+ * @return  return a pointer to the queue created
  *
- * @return  none
- *
- * func 'destroy_data' will be called while removing element
- *
- * element delete:
- * 1 destroy elm->data, release the pointer or kernel objects inner elm->data
- * 2 free the elm (including elm header and elm->data)
+ * example: que_cb_t *myq = que_create(0);
+ *          or 
+ *          que_cb_t *myq;
+ *          que_create(&myq);
  **/
-void thrq_set_free(thrq_cb_t *thrq, thrq_destroy_data_t destroy_data)
+que_cb_t* que_new(que_cb_t **que)
 {
-    mux_lock(&thrq->lock);
-    thrq->destroy_data = destroy_data;
-    mux_unlock(&thrq->lock);
+    que_cb_t *newq = (que_cb_t*)malloc(sizeof(que_cb_t));
+    if (newq) {
+        if (que_init(newq) < 0) {
+            free(newq);
+            newq = NULL;
+        }
+    }
+
+    if (que) {
+        *que = newq;
+    }
+    return newq;
 }
 
 /**
- * @brief   clean & init memory pool for thrq alloc/free
- * @param   thrq        queue
+ * @brief   clean & init memory pool for que alloc/free
+ * @param   que         queue
  *          n           number of data element
  *          data_size   max size of user data
  *
  * @return  0 is ok
  **/
-int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
+int que_set_mpool(que_cb_t *que, size_t n, size_t data_size)
 {
-    mux_lock(&thrq->lock);
-    mpool_destroy(&thrq->mpool);
-    int res = mpool_init(&thrq->mpool, n, data_size);
-    mux_unlock(&thrq->lock);
-
-    return res;
+    if (mux_lock(&que->lock) < 0)
+        return -1;
+    mpool_destroy(&que->mpool);
+    if (mpool_init(&que->mpool, n, data_size) != 0) {
+        mux_unlock(&que->lock);
+        return -1;
+    }
+    mux_unlock(&que->lock);
+    return 0;
 }
 
 /**
- * @brief   set a function to copy user data if neccessary
- * @param   thrq        queue
- *          copy_data   func to copy user data
- *
- * @return  none
- *
- * func 'copy_data' will be called while insert/receiving data
- **/
-void thrq_set_copy(thrq_cb_t *thrq, thrq_copy_data_t copy_data)
-{
-    mux_lock(&thrq->lock);
-    thrq->copy_data = copy_data;
-    mux_unlock(&thrq->lock);
-}
-
-/**
- * @brief   set a function to compare user data if neccessary
- * @param   thrq            queue
- *          compare_data    func to compare user data
- *
- * @return  none
- **/
-void thrq_set_compare(thrq_cb_t *thrq, thrq_cmp_data_t compare_data)
-{
-    mux_lock(&thrq->lock);
-    thrq->cmp_elm = compare_data;
-    mux_unlock(&thrq->lock);
-}
-
-/**
- * @brief   set max size of thrq
- * @param   thrq        queue
+ * @brief   set max size of que
+ * @param   que         queue
  *          max_size    >= count of elements 
  *
- * @return  none
+ * @return  0 is ok.
  **/
-void thrq_set_maxsize(thrq_cb_t *thrq, int max_size)
+int que_set_maxsize(que_cb_t *que, int max_size)
 {
-    mux_lock(&thrq->lock);
-    thrq->max_size = max_size;
-    mux_unlock(&thrq->lock);
+    if (mux_lock(&que->lock) != 0)
+        return -1;
+    que->max_size = max_size;
+    mux_unlock(&que->lock);
+    return 0;
 }
 
 /**
  * @brief   is queue empty
- * @param   thrq    pointer to the queue
+ * @param   que    pointer to the queue
  * @return  true(!0) or false(0)
  **/
-int thrq_empty(thrq_cb_t *thrq)
+int que_empty(que_cb_t *que)
 {
-    mux_lock(&thrq->lock);
-    int empty = THRQ_EMPTY(thrq);
-    mux_unlock(&thrq->lock);
+    if (mux_lock(&que->lock) < 0)
+        return 1;   // true
+    int empty = QUE_EMPTY(que);
+    mux_unlock(&que->lock);
 
     return empty;
 }
 
 /**
  * @brief   get queue count
- * @param   thrq    pointer to the queue
+ * @param   que    pointer to the queue
  * @return  elments count
  **/
-int thrq_count(thrq_cb_t *thrq)
+int que_count(que_cb_t *que)
 {
-    mux_lock(&thrq->lock);
-    int count = thrq->count;
-    mux_unlock(&thrq->lock);
+    if (mux_lock(&que->lock) != 0)
+        return -1;
+    int count = que->count;
+    mux_unlock(&que->lock);
 
     return count;
 }
 
 /**
- * @brief   get first queue element
- * @param   thrq    pointer to the queue
- * @return  pointer to the first elments
- **/
-thrq_elm_t* thrq_first(thrq_cb_t *thrq)
-{
-    mux_lock(&thrq->lock);
-    thrq_elm_t* elm = THRQ_FIRST(thrq);
-    mux_unlock(&thrq->lock);
-
-    return elm;
-}
-
-/**
- * @brief   get last queue element
- * @param   thrq    pointer to the queue
- * @return  pointer to the last elments
- **/
-thrq_elm_t* thrq_last(thrq_cb_t *thrq)
-{
-    mux_lock(&thrq->lock);
-    thrq_elm_t* elm = THRQ_LAST(thrq);
-    mux_unlock(&thrq->lock);
-
-    return elm;
-}
-
-/**
  * @brief   insert element to the head
- * @param   thrq    queue to be insert
+ * @param   que    queue to be insert
  *          data    the data to insert
  *          len     data length
  *
  * @return  0 is ok
  **/
-int thrq_insert_head(thrq_cb_t *thrq, void *data, int len)
+int que_insert_head(que_cb_t *que, void *data, int len)
 {
     /* one byte data at least */
-    if (data == 0 || len == 0)
+    if (que == 0 || data == 0 || len == 0) {
+        errno = EINVAL;
         return -1;
+    }
 
     /* queue is full */
-    mux_lock(&thrq->lock);
+    mux_lock(&que->lock);
 
-    if (thrq->count >= thrq->max_size) {        
-        mux_unlock(&thrq->lock);
+    if (que->count >= que->max_size) {        
+        mux_unlock(&que->lock);
+        errno = EAGAIN;
         return -1;
     }
 
     /* memoy allocate */
-    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
+    que_elm_t *elm = (que_elm_t*)mpool_malloc(&que->mpool, (sizeof(que_elm_t) + len));
     if (elm == 0) {
-        mux_unlock(&thrq->lock);
+        mux_unlock(&que->lock);
+        errno = ENOMEM;
         return -1;
     }
 
     /* insert queue */
-    thrq->copy_data(elm->data, data, len);
+    memcpy(elm->data, data, len);
     elm->len = len;
-    TAILQ_INSERT_HEAD(&thrq->head, elm, entry);
-    thrq->count++;
+    TAILQ_INSERT_HEAD(&que->head, elm, entry);
+    que->count++;
 
-    mux_unlock(&thrq->lock);
+    mux_unlock(&que->lock);
 
     return 0;
 }
 
 /**
  * @brief   insert element to the tail
- * @param   thrq    queue to be insert
+ * @param   que    queue to be insert
  *          data    the data to insert
  *          len     data length
  *
  * @return  0 is ok
  **/
-int thrq_insert_tail(thrq_cb_t *thrq, void *data, int len)
+int que_insert_tail(que_cb_t *que, void *data, int len)
 {
-    if (data == 0 || len == 0)
+    if (que == 0 || data == 0 || len == 0) {
+        errno = EINVAL;
         return -1;
+    }
 
     /* queue is full */
-    mux_lock(&thrq->lock);
+    mux_lock(&que->lock);
 
-    if (thrq->count >= thrq->max_size) {        
-        mux_unlock(&thrq->lock);
+    if (que->count >= que->max_size) {        
+        mux_unlock(&que->lock);
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
+    que_elm_t *elm = (que_elm_t*)mpool_malloc(&que->mpool, (sizeof(que_elm_t) + len));
     if (elm == 0) {
-        mux_unlock(&thrq->lock);
+        mux_unlock(&que->lock);
+        errno = EAGAIN;
+        return -1;
         return -1;
     }
 
-    thrq->copy_data(elm->data, data, len);
+    memcpy(elm->data, data, len);
     elm->len = len;
-    TAILQ_INSERT_TAIL(&thrq->head, elm, entry);
-    thrq->count++;
+    TAILQ_INSERT_TAIL(&que->head, elm, entry);
+    que->count++;
 
-    mux_unlock(&thrq->lock);
+    mux_unlock(&que->lock);
 
     return 0;
 }
 
 /**
  * @brief   insert element after any queue elment
- * @param   thrq        queue to be insert
+ * @param   que        queue to be insert
  *          list_elm    the queue elment which to insert after
  *          data        the data to insert
  *          len         data length
  *
  * @return  0 is ok
  **/
-int thrq_insert_after(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len)
+int QUE_INSERT_AFTER(que_cb_t *que, que_elm_t *list_elm, void *data, int len)
 {
-    if (list_elm == 0 || data == 0 || len == 0)
+    if (list_elm == 0 || data == 0 || len == 0) {
+        errno = EINVAL;
         return -1;
+    }
 
     /* queue is full */
-    mux_lock(&thrq->lock);
-
-    if (thrq->count >= thrq->max_size) {        
-        mux_unlock(&thrq->lock);
+    if (que->count >= que->max_size) {        
+        errno = EAGAIN;
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
+    que_elm_t *elm = (que_elm_t*)mpool_malloc(&que->mpool, (sizeof(que_elm_t) + len));
     if (elm == 0) {
-        mux_unlock(&thrq->lock);
+        errno = ENOMEM;
         return -1;
     }
 
-    thrq->copy_data(elm->data, data, len);
+    memcpy(elm->data, data, len);
     elm->len = len;
-    TAILQ_INSERT_AFTER(&thrq->head, list_elm, elm, entry);
-    thrq->count++;
-
-    mux_unlock(&thrq->lock);
+    TAILQ_INSERT_AFTER(&que->head, list_elm, elm, entry);
+    que->count++;
 
     return 0;
 }
 
 /**
  * @brief   insert element before any queue elment
- * @param   thrq        queue to be insert
+ * @param   que        queue to be insert
  *          list_elm    the queue elment which to insert before
  *          data        the data to insert
  *          len         data length
  *
  * @return  0 is ok
  **/
-int thrq_insert_before(thrq_cb_t *thrq, thrq_elm_t *list_elm, void *data, int len)
+int QUE_INSERT_BEFORE(que_cb_t *que, que_elm_t *list_elm, void *data, int len)
 {
-    if (list_elm == 0 || data == 0 || len == 0)
+    if (list_elm == 0 || data == 0 || len == 0) {
+        errno = EINVAL;
         return -1;
+    }
 
     /* queue is full */
-    mux_lock(&thrq->lock);
-
-    if (thrq->count >= thrq->max_size) {        
-        mux_unlock(&thrq->lock);
+    if (que->count >= que->max_size) {        
+        errno = EAGAIN;
         return -1;
     }
 
-    thrq_elm_t *elm = (thrq_elm_t*)mpool_malloc(&thrq->mpool, (sizeof(thrq_elm_t) + len));
+    que_elm_t *elm = (que_elm_t*)mpool_malloc(&que->mpool, (sizeof(que_elm_t) + len));
     if (elm == 0) {
-        mux_unlock(&thrq->lock);
+        errno = ENOMEM;
         return -1;
     }
 
-    thrq->copy_data(elm->data, data, len);
+    memcpy(elm->data, data, len);
     elm->len = len;
     TAILQ_INSERT_BEFORE(list_elm, elm, entry);
-    thrq->count++;
-
-    mux_unlock(&thrq->lock);
+    que->count++;
 
     return 0;
 }
 
 /**
- * @brief   create thrq
- * @param   thrq    ponter to the queue-pointer
- * @return  return a pointer to the queue created
- *
- * example: thrq_cb_t *myq = thrq_create(0);
- *          or 
- *          thrq_cb_t *myq;
- *          thrq_create(&myq);
+ * @brief   free all the elements of que (except que itself)
+ * @param   que    queue to clean
+ * @return  void
  **/
-thrq_cb_t* thrq_create(thrq_cb_t **thrq)
+void que_destroy(que_cb_t *que)
 {
-    thrq_cb_t *que = (thrq_cb_t*)malloc(sizeof(thrq_cb_t));
     if (que) {
-        thrq_init(que);
-    }
-    if (thrq) {
-        *thrq = que;
-    }
-    return que;
-}
-
-/**
- * @brief   free all the elements of thrq (except thrq itself)
- * @param   thrq    queue to clean
- * @return  void
- **/
-void thrq_clean(thrq_cb_t *thrq)
-{
-    if (thrq) {
-        while (!thrq_empty(thrq)) {
-            thrq_remove(thrq, thrq_first(thrq));
+        if (mux_lock(&que->lock) != 0)
+            return;
+        while (!QUE_EMPTY(que)) {
+            QUE_REMOVE(que, QUE_FIRST(que));
         }    
-        pthread_cond_destroy(&thrq->cond);
-        pthread_mutex_destroy(&thrq->cond_lock);
-        pthread_condattr_destroy(&thrq->cond_attr);
-        mux_destroy(&thrq->lock);
-        mpool_destroy(&thrq->mpool);
-    }
-}
+        mux_unlock(&que->lock);
 
-/**
- * @brief   free all the elements of thrq  & thrq itself
- * @param   thrq    queue to free
- * @return  void
- **/
-void thrq_destroy(thrq_cb_t *thrq)
-{
-    if (thrq) { 
-        thrq_clean(thrq);
-        free(thrq);
+        mux_destroy(&que->lock);
+        mpool_destroy(&que->mpool);
     }
 }
 
 /**
  * @brief   remove element
- * @param   thrq    ponter to the queue
+ * @param   que    ponter to the queue
  *          elm     the elment to be removed
  *
  * @return  0 is ok
@@ -404,133 +323,66 @@ void thrq_destroy(thrq_cb_t *thrq)
  * remove
  * unlock
  **/
-int thrq_remove(thrq_cb_t *thrq, thrq_elm_t *elm)
+int que_remove(que_cb_t *que, que_elm_t *elm)
 {
-    if (elm != 0) {
-        mux_lock(&thrq->lock);
-        if (thrq->destroy_data) {
-            thrq->destroy_data(elm->data);
+    if (que != 0 && elm != 0) {
+        if (mux_lock(&que->lock) != 0)
+            return -1;
+        TAILQ_REMOVE(&que->head, elm, entry);
+        mpool_free(&que->mpool, elm);
+        if (que->count > 0) {
+            que->count--;
         }
-        TAILQ_REMOVE(&thrq->head, elm, entry);
-        mpool_free(&thrq->mpool, elm);
-        if (thrq->count > 0) {
-            thrq->count--;
-        }
-        mux_unlock(&thrq->lock);
+        mux_unlock(&que->lock);
     }
     return 0;
 }
 
 /**
- * @brief   concat 2 thrq
- * @param   thrq1   ponter to the queue 1
- *          thrq2   ponter to the queue 2
+ * @brief   concat 2 que
+ * @param   que1   ponter to the queue 1
+ *          que2   ponter to the queue 2
  *
  * @return  0 is ok
  *
- * thrq1 = thrq1 + thrq2, and thrq2 = init
+ * que1 = que1 + que2, and que2 = init
  **/
-int thrq_concat(thrq_cb_t *thrq1, thrq_cb_t *thrq2)
+int que_concat(que_cb_t *que1, que_cb_t *que2)
 {
-    mux_lock(&thrq1->lock);
-    mux_lock(&thrq2->lock);
-    TAILQ_CONCAT(&thrq1->head, &thrq2->head, entry);
-    mux_unlock(&thrq2->lock);
-    mux_unlock(&thrq1->lock);
+    if (mux_lock(&que1->lock) != 0)
+        return -1;
+    if (mux_lock(&que2->lock) != 0)
+        return -1;
+    TAILQ_CONCAT(&que1->head, &que2->head, entry);
+    mux_unlock(&que2->lock);
+    mux_unlock(&que1->lock);
 
     return 0;
 }
 
 /**
  * @brief   find element from queue
- * @param   thrq        queue to be insert
+ * @param   que        queue to be insert
  *          data        the data to find
  *          len         data length
  *
  * @return  return the pointer to the element found
  **/
-thrq_elm_t* thrq_find(thrq_cb_t *thrq, void *data, int len)
+que_elm_t* QUE_FIND(que_cb_t *que, void *data, int len, que_cmp_data_t pfn_cmp)
 {
-    thrq_elm_t *var;
+    que_elm_t *var;
 
-    mux_lock(&thrq->lock);
-    THRQ_FOREACH(var, thrq) {
-        if ((thrq->cmp_elm)(var->data, data, fmin(len, var->len)) == 0) {
-            mux_unlock(&thrq->lock);
+    if (mux_lock(&que->lock) != 0)
+        return NULL;
+    QUE_FOREACH(var, que) {
+        if (pfn_cmp(var->data, data, fmin(len, var->len)) == 0) {
+            mux_unlock(&que->lock);
             return var;
         }
     }    
-    mux_unlock(&thrq->lock);
+    mux_unlock(&que->lock);
 
     return 0;
-}
-
-/**
- * @brief   insert element and send signal
- * @param   thrq    queue to be send
- *          data    the data to send
- *          len     data length
- *
- * @return  0 is ok
- **/
-int thrq_send(thrq_cb_t *thrq, void *data, int len)
-{
-    pthread_mutex_lock(&thrq->cond_lock);
-    int res = thrq_insert_tail(thrq, data, len);
-    pthread_cond_signal(&thrq->cond);
-    pthread_mutex_unlock(&thrq->cond_lock);
-    return res;
-}
-
-/**
- * @brief   receive and remove element
- * @param   thrq        queue to receive
- *          buf         the data buf
- *          max_size    buf size
- *          timeout     thread block time, 0 is block until signal received
- *
- * @return  0 is ok
- * 
- *  function returns when error occured or data received,
- *  ETIMEDOUT returned while timeout (ETIMEDOUT defined in <errno.h>)
- **/
-int thrq_receive(thrq_cb_t *thrq, void *buf, int max_size, double timeout)
-{
-    int res = 0;
-    struct timespec ts;
-
-    if (timeout > 0) {
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        ts.tv_nsec = (long)((timeout - (long)timeout) * 1000000000L) + ts.tv_nsec;  // ok, max_long_int = 2.1s > (1s + 1s)
-        ts.tv_sec = (time_t)timeout + ts.tv_sec + (ts.tv_nsec / 1000000000L);
-        ts.tv_nsec = ts.tv_nsec % 1000000000L;
-    }
-
-    pthread_mutex_lock(&thrq->cond_lock);
-
-    /* break when error occured or data receive */
-    while (res == 0 && thrq_count(thrq) <= 0) {
-        if (timeout > 0) {
-            res = pthread_cond_timedwait(&thrq->cond, &thrq->cond_lock, &ts);
-        } else {
-            res = pthread_cond_wait(&thrq->cond, &thrq->cond_lock);
-        }
-    }
-    if (res != 0) {
-        pthread_mutex_unlock(&thrq->cond_lock);
-        return res;
-    }
-
-    /* data received */
-    mux_lock(&thrq->lock);
-    thrq_elm_t *elm = thrq_first(thrq);
-    thrq->copy_data(buf, elm->data, fmin(max_size, elm->len));
-    thrq_remove(thrq, elm);
-    mux_unlock(&thrq->lock);
-
-    pthread_mutex_unlock(&thrq->cond_lock);
-
-    return res;
 }
 
 #ifdef __cplusplus

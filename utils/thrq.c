@@ -152,7 +152,7 @@ int thrq_set_mpool(thrq_cb_t *thrq, size_t n, size_t data_size)
  **/
 int thrq_set_maxsize(thrq_cb_t *thrq, int max_size)
 {
-    if (mux_lock(&thrq->lock) < 0)
+    if (mux_lock(&thrq->lock) != 0)
         return -1;
     thrq->max_size = max_size;
     mux_unlock(&thrq->lock);

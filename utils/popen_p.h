@@ -22,10 +22,10 @@ extern "C" {
 typedef struct {
     FILE *fp;
     pid_t pid;
-} fpid_t;
+} file_t;
 
-extern int popen_p  (const char *cmd, const char *type, fpid_t *fpid);
-extern int pclose_p (fpid_t *fpid);
+extern int popen_p  (const char *cmd, const char *type, file_t *fpid);
+extern int pclose_p (file_t *fpid);
 
 #ifdef __cplusplus
 }

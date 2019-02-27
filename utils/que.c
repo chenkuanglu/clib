@@ -1,7 +1,7 @@
 /**
- * @file    thr_queue.c
+ * @file    que.c
  * @author  ln
- * @brief   thread safe msg queue
+ * @brief   msg queue
  **/
 
 #include "que.h"
@@ -317,23 +317,17 @@ void que_destroy(que_cb_t *que)
  *          elm     the elment to be removed
  *
  * @return  0 is ok
- *
- * lock
- * release dataptr
- * remove
- * unlock
  **/
 int QUE_REMOVE(que_cb_t *que, que_elm_t *elm)
 {
-    if (que != 0 && elm != 0) {
-        if (mux_lock(&que->lock) != 0)
-            return -1;
-        TAILQ_REMOVE(&que->head, elm, entry);
-        mpool_free(&que->mpool, elm);
-        if (que->count > 0) {
-            que->count--;
-        }
-        mux_unlock(&que->lock);
+    if (que == 0 && elm == 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    TAILQ_REMOVE(&que->head, elm, entry);
+    mpool_free(&que->mpool, elm);
+    if (que->count > 0) {
+        que->count--;
     }
     return 0;
 }
@@ -371,17 +365,11 @@ int que_concat(que_cb_t *que1, que_cb_t *que2)
 que_elm_t* QUE_FIND(que_cb_t *que, void *data, int len, que_cmp_data_t pfn_cmp)
 {
     que_elm_t *var;
-
-    if (mux_lock(&que->lock) != 0)
-        return NULL;
     QUE_FOREACH(var, que) {
         if (pfn_cmp(var->data, data, fmin(len, var->len)) == 0) {
-            mux_unlock(&que->lock);
             return var;
         }
     }    
-    mux_unlock(&que->lock);
-
     return 0;
 }
 

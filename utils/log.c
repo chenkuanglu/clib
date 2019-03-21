@@ -157,6 +157,7 @@ int log_vfprintf(log_cb_t *lcb, const char *format, va_list param)
     if (lcb->prefix_callback != NULL) 
         num += lcb->prefix_callback(s);
     num += vfprintf(s, format, param);         
+    fflush(s);
     log_unlock(lcb);
     
     return num;
